@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
-#include <time.h>
+#include <cstdio>
 #include <time.h>
 
 
@@ -18,7 +18,7 @@ struct _playerData
 };
 
  
-void sleep(unsigned int mseconds)
+void _sleep(unsigned int mseconds)
 {
     clock_t goal = mseconds + clock();
     while (goal > clock());
@@ -223,7 +223,7 @@ class Player1
 
 void displayBoard(char board[MAX_Y][MAX_X])
 {
-	system("cls");
+	system("clear");
 	for (int y = 0; y < MAX_Y; y++)
 	{
 		for (int x = 0; x < MAX_X; x++)
@@ -256,7 +256,7 @@ void Pause()
 {
 	//char scs[5]; 
 	//gets(scs);
-	sleep(300);
+	_sleep(600);
 }
 
 int main()
