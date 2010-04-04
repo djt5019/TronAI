@@ -1,0 +1,6 @@
+# Git Ignore File for the Tron AI project
+
+*~
+*.o
+*.d
+ 
