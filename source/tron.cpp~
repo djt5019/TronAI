@@ -5,8 +5,8 @@
 #include <time.h>
 
 
-#define MAX_X 80
-#define MAX_Y 30
+#define MAX_X 50
+#define MAX_Y 20
 
 using namespace std;
 
