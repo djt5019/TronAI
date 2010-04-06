@@ -3,3 +3,4 @@
 
 IF rightIsOpen THEN moveRight();
 IF leftIsOpen THEN moveLeft();
+IF upIsOpen THEN moveUp();

@@ -1,1 +1,2 @@
-leftIsOpen true
+leftIsOpen false
+rightIsOpen false

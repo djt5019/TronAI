@@ -1,3 +1,8 @@
+/*
+@Name: Dan Tracy, Jerry Zimmer, Scott Dubnoff
+@Prgm: parser.cpp
+*/
+
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -5,42 +10,41 @@
 #include <stdio.h>
 #include <vector>
 #include <map>
+#include "parser.h"
+#include "tron.cpp"
 using namespace std;
 
 #define RULEFILE "rulefile.txt"
 #define KNOWLEDGEFILE "knowledge.txt"
 
-struct rule
-{
-    string name;
-    vector<string> antecedent;
-    string consequent;
-};
-
-
 map<string, bool> knowledgeBase;
 map<int, struct rule> ruleBase;
+static bool initalized = false;
 
 //! Rules will follow the form of IF <expr1> AND/OR <expr2> ... AND/OR <exprN> THEN consequent
 //! The expressions can either be pulled from the knowledgeBase or can be functions
 //! For example: IF near AND notTrapped() THEN floodFill()
-//! The functions in the rulebase should return boolean.
+//! The functions in the rule base should return boolean.
 
 void initalizeExpertSystem()
 {
     //! Will read from the rule file, create a structure for each containing the consequent
     //! and the list of antecedents.
-    ifstream input;
-    
-    initRules( input );
-    initKnowledge( input);
+  
+    if( !initalized )
+    {	
+      initRules();    
+      initKnowledge();
+      initalized = false;
+    }
 }
 
-void initRules(ifstream& ruleBaseInput)
+void initRules()
 {    
     int index = 0;
     string line;
     string temp;
+    ifstream ruleBaseInput;
     
     bool antecedentFlag = false;
     bool consequentFlag = false;
@@ -48,6 +52,7 @@ void initRules(ifstream& ruleBaseInput)
     struct rule tempRule;
     
     ruleBaseInput.open( RULEFILE );
+    
     if( !ruleBaseInput.is_open() )
     {
 	fprintf(stderr,"%s Error: The Rule File could not be opened\n", __func__);
@@ -63,6 +68,7 @@ void initRules(ifstream& ruleBaseInput)
 	{
 	    string junk;
 	    getline( ruleBaseInput, junk );
+	    line.clear();
 	    junk.clear();
 	    continue;
 	}
@@ -82,54 +88,64 @@ void initRules(ifstream& ruleBaseInput)
 	
 	if( antecedentFlag )
 	    tempRule.antecedent.push_back(temp);
-	if( consequentFlag )
-	    tempRule.consequent = temp;
 	
-
-	  
-	if( temp.find(';') != string::npos ) //!Found a semicolon delimiter 
+	if( consequentFlag )
 	{
+	    consequentFlag = false;
+	    
 	    ++index;
 	    
-	    if( tempRule.antecedent.size() % 2 != 1 )
+	    temp.erase( temp.size() - 1);
+	    tempRule.consequent = temp;
+	    tempRule.name = line;
+	    
+	    if( tempRule.antecedent.size() % 2 != 1 && tempRule.antecedent.size() < 2)
 	    {
 		fprintf(stderr,"%s Warning: Rule %d may be malformed\n", __func__, index);
 	    }
+	    
 	    ruleBase.insert( std::pair<int,struct rule>(index,tempRule));
+	    
 	    line.clear();
 	    tempRule.antecedent.clear();
 	}
 	
     }
-    
     ruleBaseInput.close();
 }
 
-void initKnowledge(ifstream& knowledgeInput)
+void initKnowledge()
 {
+    string line;
     string name;
     bool state;
+    ifstream knowledgeInput;
     
-    knowledgeInput.open( KNOWLEDGEFILE );
+    knowledgeInput.open(KNOWLEDGEFILE);
     
-    if( !knowledgeInput.open() )
+    if( !knowledgeInput.is_open() )
     {
        fprintf(stderr, "%s Error: Couldn't open the file %s\n",__func__, KNOWLEDGEFILE );
        exit(EXIT_FAILURE);
     }
     
-    while( !knowledgeInput.eof() )
+    
+    while( getline(knowledgeInput, line) )
     {
-	knowledgeInput >> name;
-	knowledgeInput >> state;
-	knowledgeBase.insert( std::pair<string, bool>(name,state) );
-	name.clear();
+	cout << line << endl;
+	name = line.substr(0, line.find(" "));
+	if( line.substr(line.find(" "), line.size() ) == "true" )
+	  state = true;
+	else
+	  state = false;
+	cout << name << "=" << state <<endl;
     }
     
     knowledgeInput.close();
 }
 
-bool evaluateRule(struct rule theRule)
+
+bool triggerRule(struct rule theRule)
 {
     //! This will take a function then parse it and proceed to call the
     //! following functions or poll the knowledgeBase.  If something is 
@@ -139,77 +155,89 @@ bool evaluateRule(struct rule theRule)
     //! times to find a good rule to apply to the game.
     
     struct rule rules;
-    bool fact;
-    
-    bool (*function)(void) = NULL;
+    string tempString;
     bool expressionValue = false;
     
     if( theRule.antecedent.size() < 2 )
     {
 	//There is only one expression
-	expressionValue = 
+	tempString = theRule.antecedent[0];
+	expressionValue = knowledgeBase.find( tempString )->second;
 	
-    }
-    
-    vector<string>::iterator prevItr = theRule.antecedent.begin() + 1;
-    vector<string>::iterator currentItr = theRule.antecedent.begin() + 2;
-    
-    while( currentItr != theRule.antecedent.end() )
-    {
-	string tempString = *currentItr;
-	string op  = *prevItr;
-	bool result;
-	
-	if( tempString.find("()") != string::npos )
-	{
-	    //TODO: Add the functions here 
-	    // Call the function, save the return value
-	    // then use the operator and 
-	}
-	else
-	{
-	  //It's not a function so look it up in the knowledge base    
-	  map<string,bool>::iterator itr = knowledgeBase.find( tempString );
-	  
-	  if( itr == map::end() )
-	  {
-	      //knowledge doesnt exist in the database so try to prove it
-	      result = searchForRule( tempString );
-	  }
-	  
-	}
-	
-	if( op == "AND" || op == "and" )
-	{
-	}
-	else if( tempString == "OR" || tempString == "or" )
-	{
-	}
-	else if( tempString == "NOT" || tempString == "not" )
-	{
-	}
-	
-	prevItr    += 2;
-	currentItr += 2;
-    }
-    
+	return expressionValue;
+    } 
     
     return expressionValue; 
 }
 
-bool searchForRule( string rulename )
+void moveLeft(const char board[MAX_X][MAX_Y], int& x, int& y)
 {
-    //! This will search for the rulename in the list of consequents stored in the
-    //! rulebase in an effort to prove wether it is true or false
-    
-    
 }
 
-#ifdef DEBUG
-int main()
+void moveRight(const char board[MAX_X][MAX_Y],int& x, int& y)
 {
-  initalizeExpertSystem();
-  return 0;
 }
-#endif
+
+void moveUp(const char board[MAX_X][MAX_Y],int& x, int& y)
+{
+}
+
+void moveDown(const char board[MAX_X][MAX_Y],int& x, int& y)
+{
+}
+
+void tryRules()
+{
+    void (*function)(const char[MAX_X][MAX_Y], int&, int&) = NULL;
+    map<int,struct rule>::iterator itr; //Rule iterator
+    
+    for( itr=ruleBase.begin(); itr != ruleBase.end(); ++itr )
+    {
+	  if( triggerRule( itr->second ) )
+	  {
+	      string functionName = itr->second.consequent;
+	      
+	      if( functionName ==  "moveLeft" )
+		  function = moveLeft;
+	      else if( functionName ==  "moveRight" )
+		  function = moveRight;
+	      else if( functionName == "moveUp" )
+		  function = moveUp;
+	      else
+		  function = moveDown;
+	  }
+    }
+}
+
+
+
+void checkSurroundings(const char board[MAX_Y][MAX_X], int x, int y)
+{
+    //! This will check around the players piece looking for a place to move
+    //! it will first try to move right then left.  If not it will default to 
+    //! moving forward
+    
+    if( board[x][y+1] == ' ' )
+    {
+    }
+    else if( board[x][y-1] == ' ' )
+    {
+    }
+    else if( board[x+1][y] == ' ' )
+    {
+    }
+    else if( board[x-1][y] == ' ' )
+    {
+    }
+}
+
+bool Player2 :: Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int them_x, int them_y)
+{
+    initalizeExpertSystem();
+    checkSurroundings(board, me_x, me_y);
+    
+    return false;
+}
+
+
 
