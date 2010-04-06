@@ -23,5 +23,10 @@ bool searchForRule( string rulename );
 bool checkArea();
 bool lookupKnowledge( string name );
 bool triggerRule( struct rule theRule );
-void checkSurroundings();
+
+void moveLeft( int& x, int& y){ --x;}
+void moveRight(int& x, int& y){ ++x;}
+void moveUp(int& x, int& y){ --y;}
+void moveDown(int& x, int& y){ ++y;}
+
 #endif

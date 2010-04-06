@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <time.h>
-
+#include "parser.h"
 
 #define MAX_X 80
 #define MAX_Y 30
@@ -107,42 +107,7 @@ class Player2
 				data->playerNum, data->x, data->y);
 		}
 
-		bool Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int them_x, int them_y)
-		{
-			int hld_me_x = me_x, hld_me_y = me_y;
-			int choice = rand() % 3;
-
-			if (choice == 0)
-			{
-				if (Attack1(board, me_x, me_y, them_x, them_y))
-					return true;
-				if (Attack2(board, me_x, me_y, them_x, them_y))
-					return true;
-			}
-			else if (choice == 1)
-			{
-				if (Attack2(board, me_x, me_y, them_x, them_y))
-					return true;
-				if (Attack1(board, me_x, me_y, them_x, them_y))
-					return true;
-			}
-
-			// this is choice 2, but also the default if nothing else works
-			me_x = hld_me_x;
-			me_y = hld_me_y;
-			if (board[me_y][me_x-1] == ' ')
-				me_x--;
-			else if (board[me_y-1][me_x] == ' ')
-				me_y--;
-			else if (board[me_y][me_x+1] == ' ')
-				me_x++;
-			else if (board[me_y+1][me_x] == ' ')
-				me_y++;
-			else
-				return false;
-
-			return true;
-		}
+		bool Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int them_x, int them_y);
 };
 
 class Player1
