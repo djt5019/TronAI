@@ -1,7 +1,8 @@
 ## Test Rule File
-## This is just a simple rule to demonstrate functionality, there will be many more complex rules later
+## This is just a simple rule to demonstrate functionality,
+## there will be many more complex rules later
 
 IF rightIsOpen THEN moveRight();
 IF leftIsOpen THEN moveLeft();
-IF upIsOpen THEN moveUp();
 IF downIsOpen THEN moveDown();
+IF upIsOpen THEN moveUp();

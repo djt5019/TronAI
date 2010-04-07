@@ -86,6 +86,12 @@ void initRules()
 	    continue;
 	}
 	
+	if( temp.find("()") != string::npos && (temp!="AND" && temp!="OR" && temp!="and" && temp!="or") )
+	{
+	    //Did not find parenthesis in the string and its not an operator
+	    knowledgeBase[temp] = false;
+	}
+	
 	if( antecedentFlag )
 	    tempRule.antecedent.push_back(temp);
 	
@@ -116,6 +122,7 @@ void initRules()
 
 void initKnowledge()
 {
+    int lineNumber = 0;
     string line;
     string name;
     ifstream knowledgeInput;
@@ -129,15 +136,37 @@ void initKnowledge()
     }
     
     
-    while( getline(knowledgeInput, line) )
+    while( ++lineNumber, getline(knowledgeInput, line) )
     {
-	if( line == "" ) break;
+	if( line == "" ) continue;
+	
+	if( line.find("##") != string::npos )
+	{
+	    //Found a comment
+	    line.clear();
+	    continue;
+	}
 	
 	name = line.substr(0, line.find(" "));
-	if( line.substr(line.find(" "), line.size() ) == "true" )
+	
+	if(name.find("()") != string::npos)
+	{
+	    fprintf(stderr, "%s Warning: Line %d: %s seems to be a function declaration, skipping line\n", __func__, lineNumber, name.c_str());
+	    continue;
+	}
+	
+	string temp = line.substr(line.find(" ")+1, line.size()); 
+	
+	if( temp == "true" )
 	  knowledgeBase[name] = true;
-	else
+	else if( temp == "false")
 	  knowledgeBase[name] = false;
+	else
+	{
+	  fprintf(stderr, "%s Warning: Line %d: Syntax error \"%s\". Values can only be boolean... Defaulting %s to false\n", __func__, lineNumber,temp.c_str(), name.c_str());
+	  knowledgeBase[name] = false;
+	}
+	      
     }
     knowledgeInput.close();
 }
@@ -155,20 +184,44 @@ bool triggerRule(struct rule theRule)
     struct rule rules;
     string tempString;
     bool expressionValue = false;
-    
-    for( map<string,bool>::iterator itr = knowledgeBase.begin(); itr!=knowledgeBase.end(); ++itr)
-    {
-       cout << itr->first << "=" << itr->second << endl;
-    }
+    map<string, bool>::iterator itr;
     
     if( theRule.antecedent.size() < 2 )
     {
 	//There is only one expression
 	tempString = theRule.antecedent[0];
 	expressionValue = knowledgeBase.find( tempString )->second;
-	cout << "Expression Value of: " << tempString << "=" << expressionValue << endl;
 	return expressionValue;
     } 
+    else
+    {
+	expressionValue = knowledgeBase[ theRule.antecedent[0] ];
+	
+	for(size_t i = 1; i < theRule.antecedent.size(); i+=2)
+	{
+	    string ex = theRule.antecedent[i];
+	    string op = theRule.antecedent[i-1];       
+	    
+	    if( (itr=knowledgeBase.find(ex)) == knowledgeBase.end() )
+	    {
+		deriveExpression( ex );
+	    }
+	    
+	    if( op == "AND" || op == "and" )
+	    {
+		expressionValue = knowledgeBase[ex] && expressionValue;
+	    }
+	    else if(op == "OR" || op == "or" )
+	    {		
+		expressionValue = knowledgeBase[ex] && expressionValue;
+	    }
+	    else if( op == "NOT" || op == "not" )
+	    {		
+		expressionValue = knowledgeBase[ex] && expressionValue;
+	    }
+	}
+    }
+    
     
     return expressionValue; 
 }
@@ -188,17 +241,17 @@ void tryRules(int& me_x, int& me_y)
 	  // pointer to the relevent movement function then call the function
 	  
 	  if( triggerRule( itr->second ) )
-	  {	      
-	    
+	  {	      	    
 	      string functionName = itr->second.consequent;
-	      cout << __func__ << ": Consequent is: " << functionName << endl;
+	      cout << __func__ << ": Action is: " << functionName << endl;
+	      
 	      if( functionName ==  "moveLeft()" )
 		  function = moveLeft;
 	      else if( functionName ==  "moveRight()" )
 		  function = moveRight;
 	      else if( functionName == "moveUp()" )
 		  function = moveUp;
-	      else
+	      else if( functionName == "moveDown()" )
 		  function = moveDown;
 	      
 	      function(me_x, me_y);
@@ -213,6 +266,28 @@ void tryRules(int& me_x, int& me_y)
 bool checkSurroundings(const char board[MAX_Y][MAX_X], int x, int y)
 {
     //! This will check around the players piece looking for a place to move
+    
+    if( board[y-1][x] != ' ' )
+    {
+	knowledgeBase["upIsOpen"] = false;
+    }
+    
+    if( board[y][x-1] != ' ' )
+    {
+	knowledgeBase["leftIsOpen"] = false;
+    }
+    
+    if( board[y][x+1] != ' ' )
+    {
+	knowledgeBase["rightIsOpen"] = false;
+    }
+    
+    if( board[y+1][x] != ' ' )
+    {
+	knowledgeBase["downIsOpen"] = false;
+    }  
+    
+    
     if( board[y-1][x] == ' ' )
     {
 	knowledgeBase["upIsOpen"] = true;
@@ -247,6 +322,27 @@ void resetDirections()
     knowledgeBase["upIsOpen"]    = false;
 }
 
+void deriveExpression( string expression )
+{
+    //! This function will iterate through the list of consequents in an effort 
+    //! to determine if the expression is true or false
+    
+    map<int,struct rule>::iterator itr = ruleBase.begin();
+    
+    for( ; itr != ruleBase.end(); ++itr )
+    {
+	if( itr->second.consequent == expression )
+	{
+	    bool value = triggerRule( itr->second );
+	    knowledgeBase[expression] = value;
+	    return;
+	}
+    }
+    
+    //The rule could not be derived so add it and default it to false
+    knowledgeBase[expression] = false;
+}
+
 bool Player2 :: Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int them_x, int them_y)
 {
     resetDirections();
@@ -261,3 +357,26 @@ bool Player2 :: Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int t
     cin.get();
     return false;
 }
+
+/////////////////////
+//! FUNCTIONS BELOW//
+/////////////////////
+void moveLeft( int& x, int& y)
+{ 
+    --x;
+}
+
+void moveRight(int& x, int& y)
+{ 
+    ++x;
+}
+
+void moveUp(int& x, int& y)
+{ 
+    --y;
+}
+
+void moveDown(int& x, int& y)
+{ 
+    ++y;
+} 
