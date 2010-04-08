@@ -229,7 +229,7 @@ int main()
 	Player1 P1;
 	Player2 P2;
 	char board[MAX_Y][MAX_X];
-
+      
 	_playerData data1, data2;
 	data1.playerNum = 1;
 	data1.x = 5;

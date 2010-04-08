@@ -3,4 +3,4 @@
 ## One expression per line
 ## EX: rightIsOpen false
 
-rightIsOpen flase
+rightIsOpen false

@@ -18,6 +18,12 @@ struct rule
     string consequent;
 };
 
+struct fact
+{
+    int data;
+    bool state;
+};
+
 struct _square
 {
     int x;

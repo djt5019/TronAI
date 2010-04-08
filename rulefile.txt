@@ -17,9 +17,7 @@ IF downIsOpen THEN moveDown();
 
 IF upIsOpen THEN moveUp();
 
-## This rule is malformed
-IF leftIsOpen AND rightIsOpen OR THEN moveLeft()
-
 ## This will be called to prove the first rule
-IF checkSurroundings() THEN DanTracyIsAwesome;
+IF rightIsOpen AND lefIsOpen THEN DanTracyIsAwesome;
 
+IF checkSurroundings() THEN rightIsOpen;

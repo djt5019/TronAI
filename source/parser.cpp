@@ -15,8 +15,9 @@ using namespace std;
 
 #define RULEFILE "rulefile.txt"
 #define KNOWLEDGEFILE "knowledge.txt"
+#define MAXDEPTH 10
 
-map<string, bool> knowledgeBase;
+map<string, struct fact> knowledgeBase;
 map<int, struct rule> ruleBase;
 static bool initalized = false;
 
@@ -159,14 +160,26 @@ void initKnowledge()
 	
 	string temp = line.substr(line.find(" ")+1, line.size()); 
 	
-	if( temp == "true" || temp == "1" )
-	    knowledgeBase[name] = true;
-	else if( temp == "false" || temp == "0")
-	    knowledgeBase[name] = false;
+	if( temp == "true" )
+	{
+	    knowledgeBase[name].state = true;
+	    knowledgeBase[name].data  = -1;
+	}
+	else if( temp == "false")
+	{
+	    knowledgeBase[name].state = false;
+	    knowledgeBase[name].data  = -1;
+	}
+	else if( atoi(name.c_str() ) != 0 && name != "0" )
+	{
+	    knowledgeBase[name].data  = atoi( name.c_str() );
+	    knowledgeBase[name].state = false;
+	}
 	else
 	{
 	    fprintf(stderr, "%s Warning: Line %d: Syntax error \"%s\". Values can only be boolean... Defaulting %s to false\n", __func__, lineNumber,temp.c_str(), name.c_str());
-	    knowledgeBase[name] = false;
+	    knowledgeBase[name].state = false;
+	    knowledgeBase[name].data  = -1;
 	}
 	      
     }
@@ -204,9 +217,10 @@ bool triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
     struct rule rules;
     string tempString;
     bool expressionValue = false;
+    int  intExpressionV  = -1;
     bool tempResult = false;
     
-    map<string, bool>::iterator itr;
+    map<string, fact>::iterator itr;
     
     if( theRule.antecedent.size() == 1 )
     {
@@ -219,17 +233,20 @@ bool triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
 	    deriveExpression(board, tempString );
 	}
 	
-	expressionValue = knowledgeBase[tempString];
+	expressionValue = knowledgeBase[tempString].state;
 	return expressionValue;
     } 
     else
     {
-	expressionValue = knowledgeBase[ theRule.antecedent[0] ];
+	if( knowledgeBase[ theRule.antecedent[0] ].data == -1 )
+	    expressionValue = knowledgeBase[ theRule.antecedent[0] ].state;
+	else	
+	    intExpressionV = knowledgeBase[ theRule.antecedent[0] ].data;
 	
-	for(size_t i = 1; i < theRule.antecedent.size(); i+=2)
+	for(size_t i = 2; i < theRule.antecedent.size(); i+=2)
 	{
-	    string op = theRule.antecedent[i];
-	    string ex = theRule.antecedent[i-1];       
+	    string ex = theRule.antecedent[i];
+	    string op = theRule.antecedent[i-1];       
 	    
 	    if( (itr=knowledgeBase.find(ex)) == knowledgeBase.end() )
 		deriveExpression( board, ex );
@@ -238,15 +255,20 @@ bool triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
 	    if( ex.find("()") != string::npos ) //Function call
 		tempResult = callFunction( board, ex );
 	    else
-		tempResult = knowledgeBase[ex];
+		tempResult = knowledgeBase[ex].state;
 	    
 	    if( op == "AND" || op == "and" )
 	    {
 		expressionValue = tempResult && expressionValue;
 	    }
-	    else if(op == "OR" || op == "or" )
+	    else if( op == "OR" || op == "or" )
 	    {		
 		expressionValue = tempResult || expressionValue;
+	    }
+	    else if( op == "GT" || op =="gt" )
+	    {
+	      
+	       // expressionValue = (knowledgeBase[ex] 
 	    }
 	}
     }
@@ -261,16 +283,29 @@ void deriveExpression( const char board[MAX_Y][MAX_X], string expression )
     //! to determine if the expression is true or false
     
     map<int,struct rule>::iterator itr = ruleBase.begin();
+    static int currentDepth = 0;
     
     printf("  +--->");
     
+    if( currentDepth == MAXDEPTH )
+    {
+      knowledgeBase[expression].state = false;
+      knowledgeBase[expression].data  = -1;
+      currentDepth = 0;
+      return;
+    }
+    else
+      ++currentDepth;
+      
     for( ; itr != ruleBase.end(); ++itr )
     {
 	if( itr->second.consequent == expression )
 	{
 	    printf("\t%s was proven true\n", expression.c_str());
 	    bool value = triggerRule( board, itr->second );
-	    knowledgeBase[expression] = value;
+	    knowledgeBase[expression].state = value;
+	    knowledgeBase[expression].data  = -1;
+	    currentDepth = 0;
 	    return;
 	}
     }
@@ -278,7 +313,8 @@ void deriveExpression( const char board[MAX_Y][MAX_X], string expression )
     printf("\t%s was unable to proven\n", expression.c_str());
      
     //The rule could not be derived so add it and default it to false
-    knowledgeBase[expression] = false;
+    knowledgeBase[expression].state = false;
+    knowledgeBase[expression].data  = -1;
 }
 
 void tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
@@ -302,7 +338,7 @@ void tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
 	      if( functionName.find("()") == string::npos )
 	      {
 		  printf("%s: %s is now set to true\n", __func__, functionName.c_str());
-		  knowledgeBase[ functionName ] = true;
+		  knowledgeBase[ functionName ].state = true;
 		  break;
 	      }
 
@@ -346,10 +382,10 @@ void tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
 
 void resetDirections()
 {
-    knowledgeBase["rightIsOpen"] = false;
-    knowledgeBase["leftIsOpen"]  = false;
-    knowledgeBase["downIsOpen"]  = false;
-    knowledgeBase["upIsOpen"]    = false;
+    knowledgeBase["rightIsOpen"].state = false;
+    knowledgeBase["leftIsOpen"].state  = false;
+    knowledgeBase["downIsOpen"].state  = false;
+    knowledgeBase["upIsOpen"].state    = false;
 }
 
 
@@ -389,43 +425,51 @@ bool checkSurroundings( const char board[MAX_Y][MAX_X] )
     
     if( board[y-1][x] != ' ' )
     {
-	knowledgeBase["upIsOpen"] = false;
+	knowledgeBase["upIsOpen"].state = false;
+	knowledgeBase["upIsOpen"].data  = -1;
     }
     
     if( board[y][x-1] != ' ' )
     {
-	knowledgeBase["leftIsOpen"] = false;
+	knowledgeBase["leftIsOpen"].state = false;
+	knowledgeBase["leftIsOpen"].data  = -1;
     }
     
     if( board[y][x+1] != ' ' )
     {
-	knowledgeBase["rightIsOpen"] = false;
+	knowledgeBase["rightIsOpen"].state = false;
+	knowledgeBase["rightIsOpen"].data  = -1;
     }
     
     if( board[y+1][x] != ' ' )
     {
-	knowledgeBase["downIsOpen"] = false;
+	knowledgeBase["downIsOpen"].state = false;
+	knowledgeBase["downIsOpen"].data  = -1;
     }  
     
     
     if( board[y-1][x] == ' ' )
     {
-	knowledgeBase["upIsOpen"] = true;
+	knowledgeBase["upIsOpen"].state = true;
+	knowledgeBase["upIsOpen"].data  = -1;
 	return true;
     }
     else if( board[y][x-1] == ' ' )
     {
-	knowledgeBase["leftIsOpen"] = true;
+	knowledgeBase["leftIsOpen"].state = true;
+	knowledgeBase["leftIsOpen"].data  = -1;
 	return true;
     }
     else if( board[y][x+1] == ' ' )
     {
-	knowledgeBase["rightIsOpen"] = true;
+	knowledgeBase["rightIsOpen"].state = true;
+	knowledgeBase["rightIsOpen"].data  = -1;
 	return true;
     }
     else if( board[y+1][x] == ' ' )
     {
-	knowledgeBase["downIsOpen"] = true;
+	knowledgeBase["downIsOpen"].state = true;
+	knowledgeBase["downIsOpen"].data  = -1;
 	return true;
     }
     else
@@ -529,6 +573,7 @@ int ShortestPath(const char board[MAX_Y][MAX_X],const int start_x,const int star
 		bestPath[j].x = newPath[j].x;
 		bestPath[j].y = newPath[j].y;
 	    }
+	    
 	    shortestPathLength = newPathLength;
 	}
     }
