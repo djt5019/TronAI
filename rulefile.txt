@@ -2,7 +2,24 @@
 ## This is just a simple rule to demonstrate functionality,
 ## there will be many more complex rules later
 
+
+## This rule will need to be derived
+IF DanTracyIsAwesome THEN ThisIsAllGood;
+
+## This rule will not be able to be proven
+IF nonDerivable THEN unreachable();
+
 IF rightIsOpen THEN moveRight();
+
 IF leftIsOpen THEN moveLeft();
+
 IF downIsOpen THEN moveDown();
+
 IF upIsOpen THEN moveUp();
+
+## This rule is malformed
+IF leftIsOpen AND rightIsOpen OR THEN moveLeft()
+
+## This will be called to prove the first rule
+IF checkSurroundings() THEN DanTracyIsAwesome;
+

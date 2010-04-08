@@ -3,9 +3,9 @@
 #include <cstdlib>
 #include <cstdio>
 #include <time.h>
-#include "parser.h"
 
 #define MAX_X 80
+
 #define MAX_Y 30
 
 using namespace std;
