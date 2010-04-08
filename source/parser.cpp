@@ -182,6 +182,11 @@ bool callFunction(const char board[MAX_Y][MAX_X], string functionName )
     
     if( functionName == "checkSurroundings()" )
 	function = checkSurroundings;
+    else
+    {
+	printf("%s: the function \'%s\' doesn't seem to exist\n", __func__, functionName.c_str());
+	return false;
+    }
       
     return function(board);
 }
@@ -203,7 +208,7 @@ bool triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
     
     map<string, bool>::iterator itr;
     
-    if( theRule.antecedent.size() < 2 )
+    if( theRule.antecedent.size() == 1 )
     {
 	//There is only one expression
 	tempString = theRule.antecedent[0];
@@ -322,6 +327,16 @@ void tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
 	      {
 		  function = moveDown;
 		  function(myY);
+	      }
+	      else
+	      {
+		if( callFunction(board,functionName) == false )
+		{
+		  // The function call didn't succeed
+		  // When in doubt, go down.
+		  function = moveDown;
+		  function(myY);
+		}
 	      }
 	     	      
 	      break;

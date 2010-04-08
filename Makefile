@@ -6,11 +6,11 @@ INCLUDE := $(SOURCES) $(HEADERS)
 
 FLAGS:= -Wextra -Wall
 
-test:
+all:
 	g++ -g -D DEBUG $(FLAGS) -o out source/parser.cpp
 
 final:
-	g++ $(FLAGS) $(INCLUDE) -o out
-	
+	g++ $(FLAGS) -o out source/parser.cpp
+
 clean:
 	rm out
