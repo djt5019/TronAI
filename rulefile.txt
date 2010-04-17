@@ -18,6 +18,5 @@ IF downIsOpen THEN moveDown();
 IF upIsOpen THEN moveUp();
 
 ## This will be called to prove the first rule
-IF rightIsOpen AND lefIsOpen THEN DanTracyIsAwesome;
+IF rightIsOpen AND leftIsOpen THEN DanTracyIsAwesome;
 
-IF checkSurroundings() THEN rightIsOpen;

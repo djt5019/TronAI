@@ -17,34 +17,20 @@ using namespace std;
 #define KNOWLEDGEFILE "knowledge.txt"
 #define MAXDEPTH 10
 
-map<string, struct fact> knowledgeBase;
-map<int, struct rule> ruleBase;
-static bool initalized = false;
-
-int* myX;
-int* myY;
-int themX;
-int themY;
-
 //! Rules will follow the form of IF <expr1> AND/OR <expr2> ... AND/OR <exprN> THEN consequent
 //! The expressions can either be pulled from the knowledgeBase or can be functions
 //! For example: IF near AND notTrapped() THEN floodFill()
 //! The functions in the rule base should return boolean.
 
-void initalizeExpertSystem()
+void djt5019 :: initalizeExpertSystem()
 {
     //! Will read from the rule file, create a structure for each containing the consequent
     //! and the list of antecedents.
-  
-    if( !initalized )
-    {	
       initRules();    
       initKnowledge();
-      initalized = true;
-    }
 }
 
-void initRules()
+void djt5019 :: initRules()
 {    
     int index = 0;
     string line;
@@ -123,7 +109,7 @@ void initRules()
     ruleBaseInput.close();
 }
 
-void initKnowledge()
+void djt5019 :: initKnowledge()
 {
     int lineNumber = 0;
     string line;
@@ -162,24 +148,16 @@ void initKnowledge()
 	
 	if( temp == "true" )
 	{
-	    knowledgeBase[name].state = true;
-	    knowledgeBase[name].data  = -1;
+	    knowledgeBase[name] = true;
 	}
 	else if( temp == "false")
 	{
-	    knowledgeBase[name].state = false;
-	    knowledgeBase[name].data  = -1;
-	}
-	else if( atoi(name.c_str() ) != 0 && name != "0" )
-	{
-	    knowledgeBase[name].data  = atoi( name.c_str() );
-	    knowledgeBase[name].state = false;
+	    knowledgeBase[name] = false;
 	}
 	else
 	{
-	    fprintf(stderr, "%s Warning: Line %d: Syntax error \"%s\". Values can only be boolean... Defaulting %s to false\n", __func__, lineNumber,temp.c_str(), name.c_str());
-	    knowledgeBase[name].state = false;
-	    knowledgeBase[name].data  = -1;
+	    fprintf(stderr, "%s Warning: Line %d: Syntax error \"%s\", defaulting %s to false\n", __func__, lineNumber,temp.c_str(), name.c_str());
+	    knowledgeBase[name] = false;
 	}
 	      
     }
@@ -187,25 +165,21 @@ void initKnowledge()
 }
 
 
-bool callFunction(const char board[MAX_Y][MAX_X], string functionName )
+bool djt5019 :: callFunction(const char board[MAX_Y][MAX_X], string functionName )
 {
-    bool (*function)(const char board[MAX_Y][MAX_X]) = NULL;
-    
     printf("%s: calling function \'%s\'\n",__func__, functionName.c_str());
     
     if( functionName == "checkSurroundings()" )
-	function = checkSurroundings;
+	return checkSurroundings(board);
     else
     {
 	printf("%s: the function \'%s\' doesn't seem to exist\n", __func__, functionName.c_str());
 	return false;
     }
-      
-    return function(board);
 }
 
 
-bool triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
+bool djt5019 :: triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
 {
     //! This will take a function then parse it and proceed to call the
     //! following functions or poll the knowledgeBase.  If something is 
@@ -217,58 +191,49 @@ bool triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
     struct rule rules;
     string tempString;
     bool expressionValue = false;
-    int  intExpressionV  = -1;
     bool tempResult = false;
     
-    map<string, fact>::iterator itr;
+    map<string, bool>::iterator itr;
     
     if( theRule.antecedent.size() == 1 )
     {
 	//There is only one expression
 	tempString = theRule.antecedent[0];
-	
+
 	if( tempString.find("()") == string::npos && (knowledgeBase.find( tempString ) == knowledgeBase.end()) )
 	{
 	    printf("Deriving the expression \'%s\' ...\n", tempString.c_str());
 	    deriveExpression(board, tempString );
 	}
-	
-	expressionValue = knowledgeBase[tempString].state;
+
+	expressionValue = knowledgeBase[tempString];
 	return expressionValue;
     } 
     else
     {
-	if( knowledgeBase[ theRule.antecedent[0] ].data == -1 )
-	    expressionValue = knowledgeBase[ theRule.antecedent[0] ].state;
-	else	
-	    intExpressionV = knowledgeBase[ theRule.antecedent[0] ].data;
-	
-	for(size_t i = 2; i < theRule.antecedent.size(); i+=2)
+	expressionValue = knowledgeBase[ theRule.antecedent[0] ];
+
+	for(size_t i = 1; i < theRule.antecedent.size(); i+=2)
 	{
-	    string ex = theRule.antecedent[i];
-	    string op = theRule.antecedent[i-1];       
-	    
+	    string op = theRule.antecedent[i];
+	    string ex = theRule.antecedent[i-1];       
+
 	    if( (itr=knowledgeBase.find(ex)) == knowledgeBase.end() )
 		deriveExpression( board, ex );
-	    
+
 
 	    if( ex.find("()") != string::npos ) //Function call
 		tempResult = callFunction( board, ex );
 	    else
-		tempResult = knowledgeBase[ex].state;
-	    
+		tempResult = knowledgeBase[ex];
+
 	    if( op == "AND" || op == "and" )
 	    {
 		expressionValue = tempResult && expressionValue;
 	    }
-	    else if( op == "OR" || op == "or" )
+	    else if(op == "OR" || op == "or" )
 	    {		
 		expressionValue = tempResult || expressionValue;
-	    }
-	    else if( op == "GT" || op =="gt" )
-	    {
-	      
-	       // expressionValue = (knowledgeBase[ex] 
 	    }
 	}
     }
@@ -277,7 +242,7 @@ bool triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
     return expressionValue; 
 }
 
-void deriveExpression( const char board[MAX_Y][MAX_X], string expression )
+void djt5019 :: deriveExpression( const char board[MAX_Y][MAX_X], string expression )
 {
     //! This function will iterate through the list of consequents in an effort 
     //! to determine if the expression is true or false
@@ -289,8 +254,7 @@ void deriveExpression( const char board[MAX_Y][MAX_X], string expression )
     
     if( currentDepth == MAXDEPTH )
     {
-      knowledgeBase[expression].state = false;
-      knowledgeBase[expression].data  = -1;
+      knowledgeBase[expression] = false;
       currentDepth = 0;
       return;
     }
@@ -303,8 +267,7 @@ void deriveExpression( const char board[MAX_Y][MAX_X], string expression )
 	{
 	    printf("\t%s was proven true\n", expression.c_str());
 	    bool value = triggerRule( board, itr->second );
-	    knowledgeBase[expression].state = value;
-	    knowledgeBase[expression].data  = -1;
+	    knowledgeBase[expression] = value;
 	    currentDepth = 0;
 	    return;
 	}
@@ -313,15 +276,12 @@ void deriveExpression( const char board[MAX_Y][MAX_X], string expression )
     printf("\t%s was unable to proven\n", expression.c_str());
      
     //The rule could not be derived so add it and default it to false
-    knowledgeBase[expression].state = false;
-    knowledgeBase[expression].data  = -1;
+    knowledgeBase[expression] = false;
 }
 
-void tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
+void djt5019 :: tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
 {
-    //Pointer to one of the four move functions
-    void (*function)(int&) = NULL;
-    
+   
     map<int,struct rule>::iterator itr;
     
     for( itr=ruleBase.begin(); itr != ruleBase.end(); ++itr )
@@ -338,7 +298,7 @@ void tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
 	      if( functionName.find("()") == string::npos )
 	      {
 		  printf("%s: %s is now set to true\n", __func__, functionName.c_str());
-		  knowledgeBase[ functionName ].state = true;
+		  knowledgeBase[ functionName ] = true;
 		  break;
 	      }
 
@@ -346,23 +306,23 @@ void tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
      	      
 	      if( functionName ==  "moveLeft()" )
 	      {
-		  function = moveLeft;
-		  function(myX);
+		  moveLeft(myX);
+		  moved = true;
 	      }
 	      else if( functionName ==  "moveRight()" )
 	      {
-		  function = moveRight;
-		  function(myX);
+		  moveRight(myX);		  
+		  moved = true;
 	      }
 	      else if( functionName == "moveUp()" )
 	      {
-		  function = moveUp;
-		  function(myY);
+		  moveUp(myY);
+		  moved = true;		  
 	      }
 	      else if( functionName == "moveDown()" )
 	      {
-		  function = moveDown;
-		  function(myY);
+		  moveDown(myY);
+		  moved = true;
 	      }
 	      else
 	      {
@@ -370,8 +330,8 @@ void tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
 		{
 		  // The function call didn't succeed
 		  // When in doubt, go down.
-		  function = moveDown;
-		  function(myY);
+		  moveDown(myY);
+		  moved = true;
 		}
 	      }
 	     	      
@@ -380,34 +340,62 @@ void tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
     }
 }
 
-void resetDirections()
+void djt5019 :: move(int& myX, int& myY)
 {
-    knowledgeBase["rightIsOpen"].state = false;
-    knowledgeBase["leftIsOpen"].state  = false;
-    knowledgeBase["downIsOpen"].state  = false;
-    knowledgeBase["upIsOpen"].state    = false;
+    if( moved == true ) return;
+    
+    printf("UP   = %d\nLEFT = %d\nRIGHT= %d\nDOWN = %d\n", knowledgeBase["upIsOpen"],knowledgeBase["leftIsOpen"],knowledgeBase["rightIsOpen"],knowledgeBase["downIsOpen"]);
+    if( knowledgeBase["upIsOpen"] == true )
+    {
+	moveUp(myY);
+	moved = true;
+    }
+    else if( knowledgeBase["leftIsOpen"] == true )
+    {
+	moveLeft(myX);		  
+	moved = true;
+    }
+    else if( knowledgeBase["rightIsOpen"] == true )
+    {
+	moveRight(myX);
+	moved = true;		  
+    }
+    else if( knowledgeBase["downIsOpen"] == true )
+    {
+	moveDown(myY);
+	moved = true;
+    }
 }
 
-
+void djt5019 :: resetDirections()
+{
+    knowledgeBase["rightIsOpen"] = false;
+    knowledgeBase["leftIsOpen"]  = false;
+    knowledgeBase["downIsOpen"]  = false;
+    knowledgeBase["upIsOpen"]    = false;
+    moved = false;
+}
 
 bool Player2 :: Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int them_x, int them_y)
 {
-    resetDirections();
-    initalizeExpertSystem();
+    static djt5019 game;
     
-    myX    = &me_x;
-    myY    = &me_y;
-    themX  = them_x;
-    themY  = them_y;
+    game.resetDirections();
     
-    if( checkSurroundings(board) )
+    game.myX    = &me_x;
+    game.myY    = &me_y;
+    game.themX  = them_x;
+    game.themY  = them_y;
+    
+    if( game.checkSurroundings(board) )
     {
-	tryRules(board, me_x, me_y);
-	cin.get();
+	game.tryRules(board, me_x, me_y);
+	game.move(me_x,me_y);
+	(DEBUG == 1) ? cin.get() : 0;
 	return true;
     }
     
-    cin.get();
+    (DEBUG == 1)? cin.get() : 0;
     return false;
 }
 
@@ -416,69 +404,59 @@ bool Player2 :: Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int t
 // AI FUNCTIONS BELOW
 ///////////////////////
 
-bool checkSurroundings( const char board[MAX_Y][MAX_X] )
+bool djt5019 :: checkSurroundings( const char board[MAX_Y][MAX_X] )
 {
     //! This will check around the players piece looking for a place to move
     
     int x = *myX;
     int y = *myY;
+    int blockedCount = 0;
     
     if( board[y-1][x] != ' ' )
     {
-	knowledgeBase["upIsOpen"].state = false;
-	knowledgeBase["upIsOpen"].data  = -1;
+	knowledgeBase["upIsOpen"] = false;
+	++blockedCount;
     }
+    else
+	knowledgeBase["upIsOpen"] = true;
+    
     
     if( board[y][x-1] != ' ' )
     {
-	knowledgeBase["leftIsOpen"].state = false;
-	knowledgeBase["leftIsOpen"].data  = -1;
+	knowledgeBase["leftIsOpen"] = false;
+	++blockedCount;
     }
+    else
+	knowledgeBase["leftIsOpen"] = true;
+    
     
     if( board[y][x+1] != ' ' )
     {
-	knowledgeBase["rightIsOpen"].state = false;
-	knowledgeBase["rightIsOpen"].data  = -1;
+	knowledgeBase["rightIsOpen"] = false;
+	++blockedCount;
     }
+    else
+	knowledgeBase["rightIsOpen"] = true;
+    
     
     if( board[y+1][x] != ' ' )
     {
-	knowledgeBase["downIsOpen"].state = false;
-	knowledgeBase["downIsOpen"].data  = -1;
-    }  
-    
-    
-    if( board[y-1][x] == ' ' )
-    {
-	knowledgeBase["upIsOpen"].state = true;
-	knowledgeBase["upIsOpen"].data  = -1;
-	return true;
-    }
-    else if( board[y][x-1] == ' ' )
-    {
-	knowledgeBase["leftIsOpen"].state = true;
-	knowledgeBase["leftIsOpen"].data  = -1;
-	return true;
-    }
-    else if( board[y][x+1] == ' ' )
-    {
-	knowledgeBase["rightIsOpen"].state = true;
-	knowledgeBase["rightIsOpen"].data  = -1;
-	return true;
-    }
-    else if( board[y+1][x] == ' ' )
-    {
-	knowledgeBase["downIsOpen"].state = true;
-	knowledgeBase["downIsOpen"].data  = -1;
-	return true;
-    }
+	knowledgeBase["downIsOpen"] = false;
+	++blockedCount;
+    } 
     else
+	knowledgeBase["downIsOpen"] = true;
+    
+    if( blockedCount == 4 )
     {
-      return false;
+	knowledgeBase["trapped"] = true;
+	return false;
     }
+   
+    return true;
 }
 
-int SquaresReachable(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, _square squaresReachable[MAX_Y*MAX_X])
+int djt5019 :: SquaresReachable(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, _square squaresReachable[MAX_Y*MAX_X])
 {
     int counter = 0;
     
@@ -496,14 +474,14 @@ int SquaresReachable(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, _squa
     return counter;
 }
 
-int Distance(const char board[MAX_Y][MAX_X],const int start_x,const int start_y,const int end_x,const int end_y)
+int djt5019 :: Distance(const char board[MAX_Y][MAX_X],const int start_x,const int start_y,const int end_x,const int end_y)
 {
     _square movesList[MAX_Y*MAX_X];
     return ShortestPath(board,start_x, start_y, end_x, end_y, movesList, 0);
 }
 
 
-int ShortestPath(const char board[MAX_Y][MAX_X],const int start_x,const int start_y,const int end_x,const int end_y, _square movesList[MAX_Y*MAX_X], int stackCount)
+int djt5019 :: ShortestPath(const char board[MAX_Y][MAX_X],const int start_x,const int start_y,const int end_x,const int end_y, _square movesList[MAX_Y*MAX_X], int stackCount)
 {
     _square oldSquare[MAX_Y*MAX_X];
     _square newPath[MAX_Y*MAX_X];
@@ -598,7 +576,7 @@ int ShortestPath(const char board[MAX_Y][MAX_X],const int start_x,const int star
 }
 
 
-bool FillPoly(const char board[MAX_Y][MAX_X], int& me_x, int& me_y)
+bool djt5019 :: FillPoly(const char board[MAX_Y][MAX_X], int& me_x, int& me_y)
 {
     int numSquares;
     _square fillSquare[MAX_Y*MAX_X];
