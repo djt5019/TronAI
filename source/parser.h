@@ -6,7 +6,6 @@
 #include <vector>
 #include "tron.cpp"
 
-
 using std::vector;
 using std::string;
 using std::ifstream;
@@ -37,8 +36,10 @@ class djt5019 : public Player2{
     int* myY;
     int themX;
     int themY;
+    int __debug__;
     
     djt5019() { initalizeExpertSystem(); }
+    bool debug() { if(__debug__) return true; else return false; }
     
     void initalizeExpertSystem();
     void initRules();
@@ -58,10 +59,7 @@ class djt5019 : public Player2{
 
     //! Decision Functions
     bool checkSurroundings( const char board[MAX_Y][MAX_X] );
-    int SquaresReachable(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, _square squaresReachable[MAX_Y*MAX_X]);
-    int Distance(const char board[MAX_Y][MAX_X],const int start_x,const int start_y,const int end_x,const int end_y);
-    int ShortestPath(const char board[MAX_Y][MAX_X], const int start_x,const int start_y,const int end_x,const int end_y, _square movesList[MAX_Y*MAX_X], int stackCount);
-    bool FillPoly(const char board[MAX_Y][MAX_X], int& me_x, int& me_y);
+    
 
   private:
     map<string, bool> knowledgeBase;

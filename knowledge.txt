@@ -1,6 +1,0 @@
-## This file will contain some predetermined information
-## The syntax is <name> <value>  where value is boolean
-## One expression per line
-## EX: rightIsOpen false
-
-rightIsOpen false

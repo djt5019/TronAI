@@ -13,9 +13,10 @@
 #include "parser.h"
 using namespace std;
 
-#define RULEFILE "rulefile.txt"
+#define RULEFILE "djt5019.dat"
 #define KNOWLEDGEFILE "knowledge.txt"
 #define MAXDEPTH 10
+
 
 //! Rules will follow the form of IF <expr1> AND/OR <expr2> ... AND/OR <exprN> THEN consequent
 //! The expressions can either be pulled from the knowledgeBase or can be functions
@@ -26,6 +27,13 @@ void djt5019 :: initalizeExpertSystem()
 {
     //! Will read from the rule file, create a structure for each containing the consequent
     //! and the list of antecedents.
+    
+      #if DEBUG
+      __debug__ = 1;
+      #else
+      __debug__ = 0;
+      #endif
+      
       initRules();    
       initKnowledge();
 }
@@ -206,7 +214,11 @@ bool djt5019 :: triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
 	    deriveExpression(board, tempString );
 	}
 
-	expressionValue = knowledgeBase[tempString];
+	if( tempString[0] == '!' )
+	    expressionValue = !(knowledgeBase[tempString]);
+	else
+	    expressionValue = knowledgeBase[tempString];
+	
 	return expressionValue;
     } 
     else
@@ -221,11 +233,18 @@ bool djt5019 :: triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
 	    if( (itr=knowledgeBase.find(ex)) == knowledgeBase.end() )
 		deriveExpression( board, ex );
 
-
 	    if( ex.find("()") != string::npos ) //Function call
+	    {
 		tempResult = callFunction( board, ex );
+		
+		(ex[0] == '!') ? tempResult =  !tempResult : 0;
+	    }
 	    else
+	    {
 		tempResult = knowledgeBase[ex];
+		
+		(ex[0] == '!') ? tempResult = !tempResult : 0;
+	    }
 
 	    if( op == "AND" || op == "and" )
 	    {
@@ -291,7 +310,7 @@ void djt5019 :: tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
 	  // pointer to the relevent movement function then call the function
 	  // The consequents will only be movement functions or proving knowledge facts
 	  
-	  if( triggerRule( board, itr->second ) )
+	  if( triggerRule( board, itr->second ) && moved != true)
 	  {	      	    
 	      string functionName = itr->second.consequent;
 	      
@@ -389,13 +408,14 @@ bool Player2 :: Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int t
     
     if( game.checkSurroundings(board) )
     {
+	//game.shortestPath();
 	game.tryRules(board, me_x, me_y);
 	game.move(me_x,me_y);
-	(DEBUG == 1) ? cin.get() : 0;
+	(game.debug()) ? cin.get() : 0;
 	return true;
     }
     
-    (DEBUG == 1)? cin.get() : 0;
+    (game.debug())? cin.get() : 0;
     return false;
 }
 
@@ -453,133 +473,5 @@ bool djt5019 :: checkSurroundings( const char board[MAX_Y][MAX_X] )
 	return false;
     }
    
-    return true;
-}
-
-int djt5019 :: SquaresReachable(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, _square squaresReachable[MAX_Y*MAX_X])
-{
-    int counter = 0;
-    
-    for (int i = 1; i < MAX_X-1; i++)
-       for (int j = 1; j < MAX_Y-1; j++)
-	  if (board[j][i] == ' ')
-	  {
-	      if(Distance(board, me_x, me_y, i, j)>0)
-	      {
-		squaresReachable[counter].x = i;
-		squaresReachable[counter++].y = j;
-	      }
-	  }
-	    
-    return counter;
-}
-
-int djt5019 :: Distance(const char board[MAX_Y][MAX_X],const int start_x,const int start_y,const int end_x,const int end_y)
-{
-    _square movesList[MAX_Y*MAX_X];
-    return ShortestPath(board,start_x, start_y, end_x, end_y, movesList, 0);
-}
-
-
-int djt5019 :: ShortestPath(const char board[MAX_Y][MAX_X],const int start_x,const int start_y,const int end_x,const int end_y, _square movesList[MAX_Y*MAX_X], int stackCount)
-{
-    _square oldSquare[MAX_Y*MAX_X];
-    _square newPath[MAX_Y*MAX_X];
-    _square bestPath[MAX_Y*MAX_X];
-    _square moves[3];
-    int newPathLength = 0;
-    int shortestPathLength = 0;
-    int numNewPaths = 0;
-    bool repeat = false;
-
-
-    for (int i = 0; i < stackCount; i++)
-    {
-	oldSquare[i].x = movesList[i].x;
-	oldSquare[i].y = movesList[i].y;
-    }
-
-
-    //if end is reached, set path returned to previous square to the coordinates of current square and length of path to 1.
-    if(start_x == end_x && start_y == end_y)
-    {
-	movesList[0].x = start_x;
-	movesList[0].y = start_y;
-	return 1;
-    }
-    
-	for(int i = -1; i<2; i+=2)
-	    for(int j = -1; j<2; j+=2)
-		if( (i != 0 || j!=0) && (j == 0 || i == 0) && board[start_y + j][start_x + i] == ' ')
-		{
-		    for(int k = 0; k < stackCount; k++)
-			if(oldSquare[k].x == start_x + i && oldSquare[k].y == start_y + j)
-			    repeat = true;
-			
-		    if(!repeat)
-		    {
-			moves[numNewPaths].x = start_x + i;
-			moves[numNewPaths++].y = start_y + j;
-		    }
-		    repeat = false; 
-		}
-		
-    for(int i = 0; i < stackCount; i++)
-    {
-	newPath[i].x = oldSquare[i].x;
-	newPath[i].y = oldSquare[i].y;
-    }
-    
-    stackCount++;
-    
-    if(numNewPaths == 0)
-	return -1;
-    
-    //for each entry in 'moves' calculate the shortest path from that square to the end square        
-    for(int i = 0; i < numNewPaths; i++)
-    {
-	//Add starting square to the path given to the next square.
-	newPath[stackCount].x = start_x;
-	newPath[stackCount].y = start_y;
-	newPathLength = ShortestPath(board, moves[i].x, moves[i].y, end_x, end_y, newPath, stackCount);
-	
-	//save the shortest path
-	if ((newPathLength < shortestPathLength || shortestPathLength == 0) && newPathLength > 0)
-	{
-	    for(int j = 0; j < newPathLength;j++)
-	    {
-		bestPath[j].x = newPath[j].x;
-		bestPath[j].y = newPath[j].y;
-	    }
-	    
-	    shortestPathLength = newPathLength;
-	}
-    }
-    
-    if(shortestPathLength == 0)
-    {
-	return -1;
-    }
-    
-    //add starting square as the first entry in best path
-    movesList[0].x = start_x;
-    movesList[0].y = start_y;
-    
-    //add squares in bestPath to movesList sent back to previous square
-    for(int i = 0; i < shortestPathLength; i++)
-    {
-	movesList[i+1].x = bestPath[i].x;
-	movesList[i+1].y = bestPath[i].y;
-    }
-    
-    return ++shortestPathLength;
-}
-
-
-bool djt5019 :: FillPoly(const char board[MAX_Y][MAX_X], int& me_x, int& me_y)
-{
-    int numSquares;
-    _square fillSquare[MAX_Y*MAX_X];
-    numSquares = SquaresReachable(board, me_x, me_y, fillSquare);
     return true;
 }

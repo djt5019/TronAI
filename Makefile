@@ -7,7 +7,7 @@ INCLUDE := $(SOURCES) $(HEADERS)
 FLAGS:= -Wextra -Wall
 
 all:
-	g++ -g -D DEBUG $(FLAGS) -o out source/parser.cpp
+	g++ -g $(FLAGS) -o out source/parser.cpp
 
 final:
 	g++ $(FLAGS) -o out source/parser.cpp
