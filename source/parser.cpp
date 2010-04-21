@@ -9,7 +9,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <vector>
+#include <queue>
 #include <map>
+#include <climits>
 #include "parser.h"
 using namespace std;
 
@@ -303,6 +305,9 @@ void djt5019 :: tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
    
     map<int,struct rule>::iterator itr;
     
+    if( knowledgeBase["trapped"] == true )
+	fill(myX,myY);
+    
     for( itr=ruleBase.begin(); itr != ruleBase.end(); ++itr )
     {	  
 	  // Iterate through each rule trying to see if it can be triggered
@@ -359,11 +364,10 @@ void djt5019 :: tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
     }
 }
 
-void djt5019 :: move(int& myX, int& myY)
+void djt5019 :: fill(int& myX, int& myY)
 {
     if( moved == true ) return;
     
-    printf("UP   = %d\nLEFT = %d\nRIGHT= %d\nDOWN = %d\n", knowledgeBase["upIsOpen"],knowledgeBase["leftIsOpen"],knowledgeBase["rightIsOpen"],knowledgeBase["downIsOpen"]);
     if( knowledgeBase["upIsOpen"] == true )
     {
 	moveUp(myY);
@@ -408,9 +412,9 @@ bool Player2 :: Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int t
     
     if( game.checkSurroundings(board) )
     {
-	//game.shortestPath();
+	game.shortestPath(board);
 	game.tryRules(board, me_x, me_y);
-	game.move(me_x,me_y);
+	game.fill(me_x,me_y);
 	(game.debug()) ? cin.get() : 0;
 	return true;
     }
@@ -475,3 +479,142 @@ bool djt5019 :: checkSurroundings( const char board[MAX_Y][MAX_X] )
    
     return true;
 }
+
+bool djt5019 :: shortestPath( const char G[MAX_Y][MAX_X] )
+{
+    return compare_shortest_paths(G, *myX, *myY, themX, themY);
+}
+
+void djt5019 :: initialize_single_source(vertex_info G[MAX_Y][MAX_X], int sx, int sy)
+{
+    for (int i = 0; i < MAX_Y; i++)
+    {
+        for (int j = 0; j < MAX_X; j++)
+        {
+            G[i][j].x = j;
+            G[i][j].y = i;
+            G[i][j].d = INT_MAX;
+            G[i][j].c = WHITE;
+            G[i][j].parent = NULL;
+        }
+    }
+    G[sy][sx].d = 0;
+    G[sy][sx].c = GRAY;
+}
+
+bool djt5019 :: compare_shortest_paths(const char G[MAX_Y][MAX_X], int p1x, int p1y, int p2x, int p2y)
+{
+    vertex_info p1graph[MAX_Y][MAX_X], p2graph[MAX_Y][MAX_X];
+    
+    initialize_single_source(p1graph, p1x, p2y);
+    initialize_single_source(p2graph, p2x, p2y);
+    
+    queue<vertex_info> Qp1, Qp2;
+
+    Qp1.push(p1graph[p1y][p1x]);
+    Qp2.push(p2graph[p2y][p2x]);
+    
+    vertex_info u;
+    
+    while (!Qp1.empty())
+    {
+        u = Qp1.front();
+	
+        if (G[u.y][u.x] == ' ')
+        {
+            if (G[u.y - 1][u.x] == ' ' && p1graph[u.y - 1][u.x].c == WHITE)
+            {
+                p1graph[u.y - 1][u.x].c = GRAY;
+                p1graph[u.y - 1][u.x].d = u.d + 1;
+                p1graph[u.y - 1][u.x].parent = &u;
+                Qp1.push(p1graph[u.y - 1][u.x]);
+            }
+            if (G[u.y + 1][u.x] == ' ' && p1graph[u.y + 1][u.x].c == WHITE)
+            {
+                p1graph[u.y + 1][u.x].c = GRAY;
+                p1graph[u.y + 1][u.x].d = u.d + 1;
+                p1graph[u.y + 1][u.x].parent = &u;
+                Qp1.push(p1graph[u.y + 1][u.x]);
+            }
+            if (G[u.y][u.x - 1] == ' ' && p1graph[u.y][u.x - 1].c == WHITE)
+            {
+                p1graph[u.y][u.x - 1].c = GRAY;
+                p1graph[u.y][u.x - 1].d = u.d + 1;
+                p1graph[u.y][u.x - 1].parent = &u;
+                Qp1.push(p1graph[u.y][u.x - 1]);
+            }
+            if (G[u.y][u.x + 1] == ' ' && p1graph[u.y][u.x + 1].c == WHITE)
+            {
+                p1graph[u.y][u.x + 1].c = GRAY;
+                p1graph[u.y][u.x + 1].d = u.d + 1;
+                p1graph[u.y][u.x + 1].parent = &u;
+                Qp1.push(p1graph[u.y][u.x + 1]);
+            }
+        }
+	
+	Qp1.pop();
+        p1graph[u.y][u.x].c = BLACK;
+    }
+    
+    
+    while (!Qp2.empty())
+    {
+        u = Qp2.front();
+	
+        if (G[u.y][u.x] != '1' && G[u.y][u.x] != '2')
+        {
+            if (G[u.y - 1][u.x] == ' ' && p2graph[u.y - 1][u.x].c == WHITE)
+            {
+                p2graph[u.y - 1][u.x].c = GRAY;
+                p2graph[u.y - 1][u.x].d = u.d + 1;
+                p2graph[u.y - 1][u.x].parent = &u;
+                Qp2.push(p2graph[u.y - 1][u.x]);
+            }
+            if (G[u.y + 1][u.x] == ' ' && p2graph[u.y + 1][u.x].c == WHITE)
+            {
+                p2graph[u.y + 1][u.x].c = GRAY;
+                p2graph[u.y + 1][u.x].d = u.d + 1;
+                p2graph[u.y + 1][u.x].parent = &u;
+                Qp2.push(p2graph[u.y + 1][u.x]);
+            }
+            if (G[u.y][u.x - 1] == ' ' && p2graph[u.y][u.x - 1].c == WHITE)
+            {
+                p2graph[u.y][u.x - 1].c = GRAY;
+                p2graph[u.y][u.x - 1].d = u.d + 1;
+                p2graph[u.y][u.x - 1].parent = &u;
+                Qp2.push(p2graph[u.y][u.x - 1]);
+            }
+            if (G[u.y][u.x + 1] == ' ' && p2graph[u.y][u.x + 1].c == WHITE)
+            {
+                p2graph[u.y][u.x + 1].c = GRAY;
+                p2graph[u.y][u.x + 1].d = u.d + 1;
+                p2graph[u.y][u.x + 1].parent = &u;
+                Qp2.push(p2graph[u.y][u.x + 1]);
+            }
+        }
+	
+	Qp2.pop();
+        p2graph[u.y][u.x].c = BLACK;
+    }
+    
+    for (int i = 0; i < MAX_Y; i++)
+    {
+        for (int j = 0; j < MAX_X; j++)
+        {
+            if (p1graph[i][j].d == INT_MAX)
+                zones_of_control[i][j] = INT_MIN;
+            else if (p1graph[i][j].d != INT_MAX && p2graph[i][j].d == INT_MAX)
+                zones_of_control[i][j] = p1graph[i][j].d;
+            else
+                zones_of_control[i][j] = p2graph[i][j].d - p1graph[i][j].d;
+        }
+    }
+    
+    if( zones_of_control[p2y-1][p2x] == INT_MIN && zones_of_control[p2y+1][p2x] == INT_MIN && zones_of_control[p2y][p2x-1] == INT_MIN && zones_of_control[p2y][p2x+1] == INT_MIN )
+    {
+	knowledgeBase["trapped"] = true;
+	return false;
+    }
+    
+    return true;
+} 
