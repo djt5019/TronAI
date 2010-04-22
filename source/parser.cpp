@@ -602,7 +602,7 @@ bool djt5019 :: compare_shortest_paths(const char board[MAX_Y][MAX_X], int p1x, 
     {
       for (int j = 0; j < MAX_X; j++)
       {
-	printf("|%03d|", zones_of_control[i][j]);
+	printf("|%03d|", p1graph[i][j].dist);
       }
       cout << endl;
     }
