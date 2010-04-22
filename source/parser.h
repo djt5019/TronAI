@@ -55,6 +55,15 @@ class djt5019 : public Player2{
     //! Decision Functions
     bool checkSurroundings( const char board[MAX_Y][MAX_X] );
     bool shortestPath(const char board[MAX_Y][MAX_X]);
+    void lookAhead();
+    bool enemyAbove();
+    bool enemyBelow();
+    bool enemyRight();
+    bool enemyLeft();
+    bool enemyDiagonalUpLeft();
+    bool enemyDiagonalUpRight();
+    bool enemyDiagonalDownRight();
+    bool enemyDiagonalDownLeft();
 
   private:
     map<string, bool> knowledgeBase;

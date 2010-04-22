@@ -177,17 +177,27 @@ void djt5019 :: initKnowledge()
 
 bool djt5019 :: callFunction(const char board[MAX_Y][MAX_X], string functionName )
 {
-    printf("%s: calling function \'%s\'\n",__func__, functionName.c_str());
+    printf("callFunction: calling function \'%s\'\n", functionName.c_str());
     
-    if( functionName == "checkSurroundings()" )
-	return checkSurroundings(board);
+    if( functionName == "checkSurroundings()" ) return checkSurroundings(board);
+    else if( functionName == "fill()" ){
+      knowledgeBase["trapped"] = true;
+      return true;
+    }
+    else if( functionName == "enemyAbove()" ) return enemyAbove();
+    else if( functionName == "enemyBelow()" ) return enemyBelow();
+    else if( functionName == "enemyRight()" ) return enemyRight();
+    else if( functionName == "enemyLeft()" )  return enemyLeft();
+    else if( functionName == "enemyDiagonalUpLeft()" ) return enemyDiagonalUpLeft();
+    else if( functionName == "enemyDiagonalUpRight()" ) return enemyDiagonalUpRight();
+    else if( functionName == "enemyDiagonalDownRight()" ) return enemyDiagonalDownRight();
+    else if( functionName == "enemyDiagonalDownLeft()" ) return enemyDiagonalDownLeft();
     else
     {
-	printf("%s: the function \'%s\' doesn't seem to exist\n", __func__, functionName.c_str());
+	printf("callFunction: the function \'%s\' doesn't seem to exist\n", functionName.c_str());
 	return false;
     }
 }
-
 
 bool djt5019 :: triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
 {
@@ -396,6 +406,8 @@ void djt5019 :: resetDirections()
     knowledgeBase["leftIsOpen"]  = false;
     knowledgeBase["downIsOpen"]  = false;
     knowledgeBase["upIsOpen"]    = false;
+    knowledgeBase["up"] 	 = false;
+    knowledgeBase["left"]	 = false;
     moved = false;
 }
 
@@ -594,7 +606,6 @@ bool djt5019 :: compare_shortest_paths(const char board[MAX_Y][MAX_X], int p1x, 
 	else
 	{
 	  zones_of_control[i][j] = p2graph[i][j].dist - p1graph[i][j].dist;
-	  (zones_of_control[i][j] < 0 ) ? (zones_of_control[i][j] *= -1) : 0;
 	}
       }
       
@@ -602,7 +613,7 @@ bool djt5019 :: compare_shortest_paths(const char board[MAX_Y][MAX_X], int p1x, 
     {
       for (int j = 0; j < MAX_X; j++)
       {
-	printf("|%03d|", p1graph[i][j].dist);
+	printf("|%03d|", zones_of_control[i][j]);
       }
       cout << endl;
     }
@@ -615,3 +626,81 @@ bool djt5019 :: compare_shortest_paths(const char board[MAX_Y][MAX_X], int p1x, 
     
     return true;
 } 
+
+bool djt5019 :: enemyAbove()
+{
+    return ((themY < *myY ) && (themX == *myX));
+}
+
+bool djt5019 :: enemyBelow()
+{
+    return ((themY > *myY ) && (themX == *myX));
+}
+
+bool djt5019 :: enemyRight()
+{
+    return ((themX > *myX ) && (themY == *myY)) ;
+}
+
+bool djt5019 :: enemyLeft()
+{
+    return ((themX < *myX ) && (themY == *myY));
+}
+
+bool djt5019 :: enemyDiagonalUpLeft()
+{
+    return ( themY < *myY ) && (themX < *myX);
+}
+
+bool djt5019 :: enemyDiagonalUpRight()
+{
+    return ( themY < *myY ) && (themX > *myX);
+}
+
+bool djt5019 :: enemyDiagonalDownLeft()
+{
+    return ( themY > *myY ) && (themX < *myX);
+}
+
+bool djt5019 :: enemyDiagonalDownRight()
+{
+    return ( themY > *myY ) && (themX > *myX);
+}
+
+void djt5019 :: lookAhead()
+{    
+    int countU = 0;
+    int countD = 0;
+    int countL = 0;
+    int countR = 0;
+    
+    int X = *myX;
+    int Y = *myY;
+    
+    //lookRight
+    for(int i = X; i < MAX_X; ++i)
+    {
+	(zones_of_control[Y][i] > 0) ? ++countR : 0;
+    }  
+
+    for(int i = *myX; i > 0; --i)
+    {
+	(zones_of_control[Y][i] > 0) ? ++countL : 0; 
+    }
+
+    for(int i = *myY; i< MAX_Y; ++i)
+    {
+	(zones_of_control[i][X] > 0) ? ++countD: 0;
+    }
+    
+    //lookUp
+    for(int i = *myY; i > 0; --i)
+    {
+      (zones_of_control[i][X] > 0) ? ++countU : 0;
+    }
+    
+    if( countL > countR ) knowledgeBase["left"] = true;
+    if( countL <= countR )knowledgeBase["left"] = false;
+    if( countU > countD ) knowledgeBase["up"] 	= true;
+    if( countU <=countD ) knowledgeBase["up"] 	= false;
+}

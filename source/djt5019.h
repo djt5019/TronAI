@@ -19,7 +19,7 @@
 using namespace std;
 
 #define RULEFILE "files/djt5019.dat1"
-#define KNOWLEDGEFILE "knowledge.txt"
+#define KNOWLEDGEFILE "files/djt5019.dat2"
 #define MAXDEPTH 10
 
 struct rule
@@ -46,7 +46,7 @@ class djt5019{
     int __debug__;
  
     bool debug() { if(__debug__) return true; else return false; }
-	bool Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int them_x, int them_y);
+    bool Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int them_x, int them_y);
    
     void Initialize(struct _playerData* data);
     
@@ -66,8 +66,17 @@ class djt5019{
     void fill(int& myX, int& myY);
 
     //! Decision Functions
+    void lookAhead();
     bool checkSurroundings( const char board[MAX_Y][MAX_X] );
     bool shortestPath(const char board[MAX_Y][MAX_X]);
+    bool enemyAbove();
+    bool enemyBelow();
+    bool enemyRight();
+    bool enemyLeft();
+    bool enemyDiagonalUpLeft();
+    bool enemyDiagonalUpRight();
+    bool enemyDiagonalDownRight();
+    bool enemyDiagonalDownLeft();
 
   private:
     map<string, bool> knowledgeBase;
@@ -240,10 +249,19 @@ void djt5019 :: initKnowledge()
 
 bool djt5019 :: callFunction(const char board[MAX_Y][MAX_X], string functionName )
 {
-    printf("callFunction: calling function \'%s\'\n", functionName.c_str());
-    
-    if( functionName == "checkSurroundings()" )
-	return checkSurroundings(board);
+    if( functionName == "checkSurroundings()" ) return checkSurroundings(board);
+    else if( functionName == "fill()" ){
+      knowledgeBase["trapped"] = true;
+      return true;
+    }
+    else if( functionName == "enemyAbove()" ) return enemyAbove();
+    else if( functionName == "enemyBelow()" ) return enemyBelow();
+    else if( functionName == "enemyRight()" ) return enemyRight();
+    else if( functionName == "enemyLeft()" )  return enemyLeft();
+    else if( functionName == "enemyDiagonalUpRight()" ) return enemyDiagonalUpRight();
+    else if( functionName == "enemyDiagonalDownRight()" ) return enemyDiagonalDownRight();
+    else if( functionName == "enemyDiagonalUpLeft()" ) return enemyDiagonalUpLeft();
+    else if( functionName == "enemyDiagonalDownLeft()" ) return enemyDiagonalDownLeft();
     else
     {
 	printf("callFunction: the function \'%s\' doesn't seem to exist\n", functionName.c_str());
@@ -326,6 +344,7 @@ bool djt5019 :: triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
     return expressionValue; 
 }
 
+
 void djt5019 :: deriveExpression( const char board[MAX_Y][MAX_X], string expression )
 {
     //! This function will iterate through the list of consequents in an effort 
@@ -368,7 +387,7 @@ void djt5019 :: tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
    
     map<int,struct rule>::iterator itr;
     
-    if( knowledgeBase["trapped"] == true )
+    if( knowledgeBase["trapped"] == true || knowledgeBase["enemyTrapped"] == true)
 	fill(myX,myY);
     
     for( itr=ruleBase.begin(); itr != ruleBase.end(); ++itr )
@@ -459,6 +478,8 @@ void djt5019 :: resetDirections()
     knowledgeBase["leftIsOpen"]  = false;
     knowledgeBase["downIsOpen"]  = false;
     knowledgeBase["upIsOpen"]    = false;
+    knowledgeBase["up"] 	 = false;
+    knowledgeBase["left"]	 = false;
     moved = false;
 }
 
@@ -474,6 +495,7 @@ bool djt5019 :: Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int t
     if( checkSurroundings(board) )
     {
 		shortestPath(board);
+		lookAhead();
 		tryRules(board, me_x, me_y);
 		fill(me_x,me_y);
 		(debug()) ? cin.get() : 0;
@@ -484,6 +506,84 @@ bool djt5019 :: Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int t
 	return false;
 }
 
+
+bool djt5019 :: enemyAbove()
+{
+    return ((themY < *myY ) && (themX == *myX));
+}
+
+bool djt5019 :: enemyBelow()
+{
+    return ((themY > *myY ) && (themX == *myX));
+}
+
+bool djt5019 :: enemyRight()
+{
+    return ((themX > *myX ) && (themY == *myY)) ;
+}
+
+bool djt5019 :: enemyLeft()
+{
+    return ((themX < *myX ) && (themY == *myY));
+}
+
+bool djt5019 :: enemyDiagonalUpLeft()
+{
+    return ( themY < *myY ) && (themX < *myX);
+}
+
+bool djt5019 :: enemyDiagonalUpRight()
+{
+    return ( themY < *myY ) && (themX > *myX);
+}
+
+bool djt5019 :: enemyDiagonalDownLeft()
+{
+    return ( themY > *myY ) && (themX < *myX);
+}
+
+bool djt5019 :: enemyDiagonalDownRight()
+{
+    return ( themY > *myY ) && (themX > *myX);
+}
+
+void djt5019 :: lookAhead()
+{    
+    int countU = 0;
+    int countD = 0;
+    int countL = 0;
+    int countR = 0;
+    
+    int X = *myX;
+    int Y = *myY;
+    
+    //lookRight
+    for(int i = X; i < MAX_X; ++i)
+    {
+	(zones_of_control[Y][i] > 0) ? ++countR : 0;
+    }  
+
+    for(int i = *myX; i > 0; --i)
+    {
+	(zones_of_control[Y][i] > 0) ? ++countL : 0; 
+    }
+
+    for(int i = *myY; i< MAX_Y; ++i)
+    {
+	(zones_of_control[i][X] > 0) ? ++countD: 0;
+    }
+    
+    //lookUp
+    for(int i = *myY; i > 0; --i)
+    {
+      (zones_of_control[i][X] > 0) ? ++countU : 0;
+    }
+    
+    if( countL > countR ) knowledgeBase["left"] = true;
+    if( countL <= countR )knowledgeBase["left"] = false;
+    if( countU > countD ) knowledgeBase["up"] 	= true;
+    if( countU <=countD ) knowledgeBase["up"] 	= false;
+}
 
 ///////////////////////
 // AI FUNCTIONS BELOW
@@ -554,7 +654,7 @@ void djt5019 :: initializeGraph(vertex_info G[MAX_Y][MAX_X], int sx, int sy)
         {
             G[i][j].x = j;
             G[i][j].y = i;
-            G[i][j].dist    = -10;
+            G[i][j].dist    = -999;
             G[i][j].visited = false;
         }
     }
@@ -564,7 +664,7 @@ void djt5019 :: initializeGraph(vertex_info G[MAX_Y][MAX_X], int sx, int sy)
 
 bool djt5019 :: compare_shortest_paths(const char board[MAX_Y][MAX_X], int p1x, int p1y, int p2x, int p2y)
 {
-    int wall = -10;
+    int wall = -999;
     vertex_info p1graph[MAX_Y][MAX_X];
     vertex_info p2graph[MAX_Y][MAX_X];
     
@@ -655,13 +755,13 @@ bool djt5019 :: compare_shortest_paths(const char board[MAX_Y][MAX_X], int p1x, 
 	else
 	{
 	  zones_of_control[i][j] = p2graph[i][j].dist - p1graph[i][j].dist;
-	  (zones_of_control[i][j] < 0 ) ? (zones_of_control[i][j] *= -1) : 0;
 	}
       }
     
     if( zones_of_control[p2y-1][p2x] == wall && zones_of_control[p2y+1][p2x] == wall && zones_of_control[p2y][p2x-1] == wall && zones_of_control[p2y][p2x+1] == wall )
     {
 	knowledgeBase["trapped"] = true;
+	knowledgeBase["enemyTrapped"] = true;
 	return false;
     }
     
