@@ -10,8 +10,6 @@ using std::vector;
 using std::string;
 using std::ifstream;
 
-enum Colors {WHITE=0, GRAY, BLACK};
-
 struct rule
 {
     string name;
@@ -21,23 +19,10 @@ struct rule
 
 struct vertex_info
 {
-    int x, y; //position on board
-    int d;    //distance from player's current position
-    Colors c; //current color of the vertex (keeps track of which ones have been visited)
-    struct vertex_info* parent;
+    int x, y; 
+    int dist;    
+    bool visited;
 };
-
-//This class allows a priority queue to compare variables of type vertex_info based on the value of d
-class CompareVertex {
-    public:
-	bool operator() (const vertex_info v1, const vertex_info v2) const
-	{
-	    if (v1.d <= v2.d) 
-		return true;
-	    return false;
-	}
-};
-
 
 class djt5019 : public Player2{
   
@@ -78,7 +63,7 @@ class djt5019 : public Player2{
     int zones_of_control[MAX_Y][MAX_X];
     
     bool compare_shortest_paths(const char G[MAX_Y][MAX_X], int p1x, int p1y, int p2x, int p2y);
-    void initialize_single_source(vertex_info G[MAX_Y][MAX_X], int sx, int sy);
+    void initializeGraph(vertex_info G[MAX_Y][MAX_X], int sx, int sy);
 };
 
 #endif

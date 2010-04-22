@@ -485,7 +485,7 @@ bool djt5019 :: shortestPath( const char G[MAX_Y][MAX_X] )
     return compare_shortest_paths(G, *myX, *myY, themX, themY);
 }
 
-void djt5019 :: initialize_single_source(vertex_info G[MAX_Y][MAX_X], int sx, int sy)
+void djt5019 :: initializeGraph(vertex_info G[MAX_Y][MAX_X], int sx, int sy)
 {
     for (int i = 0; i < MAX_Y; i++)
     {
@@ -493,124 +493,121 @@ void djt5019 :: initialize_single_source(vertex_info G[MAX_Y][MAX_X], int sx, in
         {
             G[i][j].x = j;
             G[i][j].y = i;
-            G[i][j].d = INT_MAX;
-            G[i][j].c = WHITE;
-            G[i][j].parent = NULL;
+            G[i][j].dist    = -10;
+            G[i][j].visited = false;
         }
     }
-    G[sy][sx].d = 0;
-    G[sy][sx].c = GRAY;
+    G[sy][sx].dist    = 0;
+    G[sy][sx].visited = false;
 }
 
-bool djt5019 :: compare_shortest_paths(const char G[MAX_Y][MAX_X], int p1x, int p1y, int p2x, int p2y)
+bool djt5019 :: compare_shortest_paths(const char board[MAX_Y][MAX_X], int p1x, int p1y, int p2x, int p2y)
 {
-    vertex_info p1graph[MAX_Y][MAX_X], p2graph[MAX_Y][MAX_X];
+    int wall = -10;
+    vertex_info p1graph[MAX_Y][MAX_X];
+    vertex_info p2graph[MAX_Y][MAX_X];
     
-    initialize_single_source(p1graph, p1x, p2y);
-    initialize_single_source(p2graph, p2x, p2y);
-    
-    queue<vertex_info> Qp1, Qp2;
+    initializeGraph(p1graph, p1x, p1y);
+    initializeGraph(p2graph, p2x, p2y);
 
-    Qp1.push(p1graph[p1y][p1x]);
-    Qp2.push(p2graph[p2y][p2x]);
+    queue<vertex_info> q1;
+    queue<vertex_info> q2;
     
-    vertex_info u;
+    q1.push( p1graph[p1y][p1x] );
+    q2.push( p2graph[p2y][p2x] );
     
-    while (!Qp1.empty())
+    while( !q1.empty() )
     {
-        u = Qp1.front();
+	vertex_info u = q1.front();
+	int x = u.x;
+	int y = u.y;
+	int distance = u.dist;
 	
-        if (G[u.y][u.x] == ' ')
-        {
-            if (G[u.y - 1][u.x] == ' ' && p1graph[u.y - 1][u.x].c == WHITE)
-            {
-                p1graph[u.y - 1][u.x].c = GRAY;
-                p1graph[u.y - 1][u.x].d = u.d + 1;
-                p1graph[u.y - 1][u.x].parent = &u;
-                Qp1.push(p1graph[u.y - 1][u.x]);
-            }
-            if (G[u.y + 1][u.x] == ' ' && p1graph[u.y + 1][u.x].c == WHITE)
-            {
-                p1graph[u.y + 1][u.x].c = GRAY;
-                p1graph[u.y + 1][u.x].d = u.d + 1;
-                p1graph[u.y + 1][u.x].parent = &u;
-                Qp1.push(p1graph[u.y + 1][u.x]);
-            }
-            if (G[u.y][u.x - 1] == ' ' && p1graph[u.y][u.x - 1].c == WHITE)
-            {
-                p1graph[u.y][u.x - 1].c = GRAY;
-                p1graph[u.y][u.x - 1].d = u.d + 1;
-                p1graph[u.y][u.x - 1].parent = &u;
-                Qp1.push(p1graph[u.y][u.x - 1]);
-            }
-            if (G[u.y][u.x + 1] == ' ' && p1graph[u.y][u.x + 1].c == WHITE)
-            {
-                p1graph[u.y][u.x + 1].c = GRAY;
-                p1graph[u.y][u.x + 1].d = u.d + 1;
-                p1graph[u.y][u.x + 1].parent = &u;
-                Qp1.push(p1graph[u.y][u.x + 1]);
-            }
-        }
-	
-	Qp1.pop();
-        p1graph[u.y][u.x].c = BLACK;
+	if( p1graph[y][x].visited == false )
+	{
+	    if( p1graph[y][x+1].visited == false && board[y][x+1] == ' ' )
+	    {
+		p1graph[y][x+1].dist = distance+1;
+		q1.push( p1graph[y][x+1] );
+	    }
+	    if( p1graph[y][x-1].visited == false && board[y][x-1] == ' ' )
+	    {
+		p1graph[y][x-1].dist = distance+1;
+		q1.push( p1graph[y][x-1] );
+	    }
+	    if( p1graph[y+1][x].visited == false && board[y+1][x] == ' ' )
+	    {
+		p1graph[y+1][x].dist = distance+1;
+		q1.push( p1graph[y+1][x] );
+	    }
+	    if( p1graph[y-1][x].visited == false && board[y-1][x] == ' ' )
+	    {
+		p1graph[y-1][x].dist = distance+1;
+		q1.push( p1graph[y-1][x] );
+	    }
+	}
+	p1graph[y][x].visited = true;
+	q1.pop();
     }
     
-    
-    while (!Qp2.empty())
+    while( !q2.empty() )
     {
-        u = Qp2.front();
+	vertex_info u = q2.front();
+	int x = u.x;
+	int y = u.y;
+	int distance = u.dist;
 	
-        if (G[u.y][u.x] != '1' && G[u.y][u.x] != '2')
-        {
-            if (G[u.y - 1][u.x] == ' ' && p2graph[u.y - 1][u.x].c == WHITE)
-            {
-                p2graph[u.y - 1][u.x].c = GRAY;
-                p2graph[u.y - 1][u.x].d = u.d + 1;
-                p2graph[u.y - 1][u.x].parent = &u;
-                Qp2.push(p2graph[u.y - 1][u.x]);
-            }
-            if (G[u.y + 1][u.x] == ' ' && p2graph[u.y + 1][u.x].c == WHITE)
-            {
-                p2graph[u.y + 1][u.x].c = GRAY;
-                p2graph[u.y + 1][u.x].d = u.d + 1;
-                p2graph[u.y + 1][u.x].parent = &u;
-                Qp2.push(p2graph[u.y + 1][u.x]);
-            }
-            if (G[u.y][u.x - 1] == ' ' && p2graph[u.y][u.x - 1].c == WHITE)
-            {
-                p2graph[u.y][u.x - 1].c = GRAY;
-                p2graph[u.y][u.x - 1].d = u.d + 1;
-                p2graph[u.y][u.x - 1].parent = &u;
-                Qp2.push(p2graph[u.y][u.x - 1]);
-            }
-            if (G[u.y][u.x + 1] == ' ' && p2graph[u.y][u.x + 1].c == WHITE)
-            {
-                p2graph[u.y][u.x + 1].c = GRAY;
-                p2graph[u.y][u.x + 1].d = u.d + 1;
-                p2graph[u.y][u.x + 1].parent = &u;
-                Qp2.push(p2graph[u.y][u.x + 1]);
-            }
-        }
-	
-	Qp2.pop();
-        p2graph[u.y][u.x].c = BLACK;
+	if( p2graph[y][x].visited == false )
+	{
+	    if( p2graph[y][x+1].visited == false && board[y][x+1] == ' ' )
+	    {
+		p2graph[y][x+1].dist = distance+1;
+		q2.push( p2graph[y][x+1] );
+	    }
+	    if( p2graph[y][x-1].visited == false && board[y][x-1] == ' ' )
+	    {
+		p2graph[y][x-1].dist = distance+1;
+		q2.push( p2graph[y][x-1] );
+	    }
+	    if( p2graph[y+1][x].visited == false && board[y+1][x] == ' ' )
+	    {
+		p2graph[y+1][x].dist = distance+1;
+		q2.push( p2graph[y+1][x] );
+	    }
+	    if( p2graph[y-1][x].visited == false && board[y-1][x] == ' ' )
+	    {
+		p2graph[y-1][x].dist = distance+1;
+		q2.push( p2graph[y-1][x] );
+	    }
+	}
+	p2graph[y][x].visited = true;
+	q2.pop();
     }
     
     for (int i = 0; i < MAX_Y; i++)
+      for (int j = 0; j < MAX_X; j++)
+      {
+	if (p1graph[i][j].dist == wall)
+	  zones_of_control[i][j] = wall;
+	else if (p1graph[i][j].dist != wall && p2graph[i][j].dist == wall)
+	  zones_of_control[i][j] = p1graph[i][j].dist;
+	else
+	{
+	  zones_of_control[i][j] = p2graph[i][j].dist - p1graph[i][j].dist;
+	  (zones_of_control[i][j] < 0 ) ? (zones_of_control[i][j] *= -1) : 0;
+	}
+      }
+      
+    for (int i = 0; i < MAX_Y; i++)
     {
-        for (int j = 0; j < MAX_X; j++)
-        {
-            if (p1graph[i][j].d == INT_MAX)
-                zones_of_control[i][j] = INT_MIN;
-            else if (p1graph[i][j].d != INT_MAX && p2graph[i][j].d == INT_MAX)
-                zones_of_control[i][j] = p1graph[i][j].d;
-            else
-                zones_of_control[i][j] = p2graph[i][j].d - p1graph[i][j].d;
-        }
+      for (int j = 0; j < MAX_X; j++)
+      {
+	printf("|%03d|", zones_of_control[i][j]);
+      }
+      cout << endl;
     }
     
-    if( zones_of_control[p2y-1][p2x] == INT_MIN && zones_of_control[p2y+1][p2x] == INT_MIN && zones_of_control[p2y][p2x-1] == INT_MIN && zones_of_control[p2y][p2x+1] == INT_MIN )
+    if( zones_of_control[p2y-1][p2x] == wall && zones_of_control[p2y+1][p2x] == wall && zones_of_control[p2y][p2x-1] == wall && zones_of_control[p2y][p2x+1] == wall )
     {
 	knowledgeBase["trapped"] = true;
 	return false;

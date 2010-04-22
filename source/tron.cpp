@@ -4,8 +4,7 @@
 #include <cstdio>
 #include <time.h>
 
-#define MAX_X 80
-
+#define MAX_X 30
 #define MAX_Y 30
 
 using namespace std;
