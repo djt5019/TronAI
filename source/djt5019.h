@@ -272,7 +272,7 @@ bool djt5019 :: callFunction(const char board[MAX_Y][MAX_X], string functionName
 
 bool djt5019 :: triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
 {
-    //! This will take a function then parse it and proceed to call the
+   //! This will take a function then parse it and proceed to call the
     //! following functions or poll the knowledgeBase.  If something is 
     //! proven as a result of the parsing process then it will be added
     //! to the knowledgeBase.  If the rule returns true then the parse
@@ -283,6 +283,7 @@ bool djt5019 :: triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
     string tempString;
     bool expressionValue = false;
     bool tempResult = false;
+    bool negate = false;
     
     map<string, bool>::iterator itr;
     
@@ -290,43 +291,76 @@ bool djt5019 :: triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
     {
 	//There is only one expression
 	tempString = theRule.antecedent[0];
+	negate = false;
 
+	if( tempString[0] == '!' )
+	{
+	    tempString = tempString.substr(1, tempString.size() );
+	    negate = true;
+	}
+	
 	if( tempString.find("()") == string::npos && (knowledgeBase.find( tempString ) == knowledgeBase.end()) )
 	{
 	    printf("Deriving the expression \'%s\' ...\n", tempString.c_str());
 	    deriveExpression(board, tempString );
 	}
-
-	if( tempString[0] == '!' )
-	    expressionValue = !(knowledgeBase[tempString]);
-	else
-	    expressionValue = knowledgeBase[tempString];
 	
-	return expressionValue;
+	if( tempString.find("()") != string::npos )
+	    expressionValue = callFunction(board, tempString);
+	
+	expressionValue = knowledgeBase[tempString];
+	
+	if( negate ) 
+	  return !expressionValue;
+	else
+	  return expressionValue;
     } 
     else
     {
-	expressionValue = knowledgeBase[ theRule.antecedent[0] ];
-
-	for(size_t i = 1; i < theRule.antecedent.size(); i+=2)
+	string ex1 = theRule.antecedent[0];
+	
+	if( ex1[0] == '!' ) 
+	{ 
+	  ex1 = ex1.substr(1, ex1.size() ); 
+	  negate = true;
+	}
+	
+	if( ex1.find("()") != string::npos )
+	    expressionValue = callFunction(board,ex1);
+	else
+	    expressionValue = knowledgeBase[ex1];
+	
+	if(negate) expressionValue = (!expressionValue);
+	
+	for(size_t i = 2; i < theRule.antecedent.size(); i+=2)
 	{
-	    string op = theRule.antecedent[i];
-	    string ex = theRule.antecedent[i-1];       
+	    string ex = theRule.antecedent[i];
+	    string op = theRule.antecedent[i-1];       
+	    negate = false;
 
+	     if( ex[0] == '!' )
+	     {
+		ex = ex.substr(1, ex.size() );
+		negate = true;
+	     }
+	    
 	    if( (itr=knowledgeBase.find(ex)) == knowledgeBase.end() )
+	    {	      
 		deriveExpression( board, ex );
+	    }
 
 	    if( ex.find("()") != string::npos ) //Function call
 	    {
 		tempResult = callFunction( board, ex );
 		
-		(ex[0] == '!') ? tempResult =  !tempResult : 0;
+		(negate) ? tempResult =  (!tempResult) : 0;
+	
 	    }
 	    else
 	    {
 		tempResult = knowledgeBase[ex];
 		
-		(ex[0] == '!') ? tempResult = !tempResult : 0;
+		(negate) ? tempResult = (!tempResult) : 0;
 	    }
 
 	    if( op == "AND" || op == "and" )
@@ -339,8 +373,6 @@ bool djt5019 :: triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
 	    }
 	}
     }
-    
-    
     return expressionValue; 
 }
 
@@ -368,7 +400,6 @@ void djt5019 :: deriveExpression( const char board[MAX_Y][MAX_X], string express
     {
 	if( itr->second.consequent == expression )
 	{
-	    printf("\t%s was proven true\n", expression.c_str());
 	    bool value = triggerRule( board, itr->second );
 	    knowledgeBase[expression] = value;
 	    currentDepth = 0;
@@ -379,6 +410,7 @@ void djt5019 :: deriveExpression( const char board[MAX_Y][MAX_X], string express
     printf("\t%s was unable to proven\n", expression.c_str());
      
     //The rule could not be derived so add it and default it to false
+    currentDepth = 0;
     knowledgeBase[expression] = false;
 }
 
@@ -506,7 +538,6 @@ bool djt5019 :: Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int t
 	return false;
 }
 
-
 bool djt5019 :: enemyAbove()
 {
     return ((themY < *myY ) && (themX == *myX));
@@ -529,22 +560,22 @@ bool djt5019 :: enemyLeft()
 
 bool djt5019 :: enemyDiagonalUpLeft()
 {
-    return ( themY < *myY ) && (themX < *myX);
+    return (( themY < *myY ) && (themX < *myX) && (themY != *myY) && (themX != *myX));
 }
 
 bool djt5019 :: enemyDiagonalUpRight()
 {
-    return ( themY < *myY ) && (themX > *myX);
+    return (( themY < *myY ) && (themX > *myX) && (themY != *myY) && (themX != *myX));
 }
 
 bool djt5019 :: enemyDiagonalDownLeft()
 {
-    return ( themY > *myY ) && (themX < *myX);
+    return (( themY > *myY ) && (themX < *myX) && (themY != *myY) && (themX != *myX));
 }
 
 bool djt5019 :: enemyDiagonalDownRight()
 {
-    return ( themY > *myY ) && (themX > *myX);
+    return (( themY > *myY ) && (themX > *myX) && (themY != *myY) && (themX != *myX));
 }
 
 void djt5019 :: lookAhead()

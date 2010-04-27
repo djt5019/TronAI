@@ -4,39 +4,29 @@
 
 IF trapped THEN fill();
 
-IF enemyAbove() and left THEN moveLeft();
-IF enemyAbove() AND !left THEN moveRight();
-IF enemyBelow() AND left THEN moveLeft();
-IF enemyBelow() AND !left THEN moveRight();
+IF enemyAbove() AND left AND leftIsOpen THEN moveLeft();
+IF enemyAbove() AND !left AND rightIsOpen THEN moveRight();
 
-IF enemyRight() AND up THEN moveUp();
-IF enemyRight() AND !up THEN moveDown();
-IF enemyLeft() AND up THEN moveUp();
-IF enemyLeft() AND !up THEN moveDown();
+IF enemyBelow() AND left AND leftIsOpen THEN moveLeft();
+IF enemyBelow() AND !left AND rightIsOpen THEN moveRight();
 
-IF enemyDiagonalUpRight() AND up THEN moveUp();
-IF enemyDiagonalUpRight() AND !left THEN moveRight();
-IF enemyDiagonalUpRight() AND !up AND left THEN moveRight();
+IF enemyRight() AND up AND upIsOpen THEN moveUp();
+IF enemyRight() AND !up AND downIsOpen THEN moveDown();
+IF enemyLeft() AND up AND upIsOpen THEN moveUp();
+IF enemyLeft() AND !up AND downIsOpen THEN moveDown();
 
+IF enemyDiagonalUpRight() AND up AND upIsOpen THEN moveUp();
+IF enemyDiagonalUpRight() AND !left AND rightIsOpen THEN moveRight();
+IF enemyDiagonalUpRight() AND !up AND left AND rightIsOpen THEN moveRight();
 
-IF enemyDiagonalDownRight() AND !up THEN moveDown();
-IF enemyDiagonalDownRight() AND !left THEN moveRight();
-IF enemyDiagonalDownRight() AND up AND left THEN moveRight();
+IF enemyDiagonalDownRight() AND !up AND downIsOpen THEN moveDown();
+IF enemyDiagonalDownRight() AND !left AND rightIsOpen THEN moveRight();
+IF enemyDiagonalDownRight() AND up AND left AND rightIsOpen THEN moveRight();
 
+IF enemyDiagonalUpLeft() AND !up AND downIsOpen THEN moveDown();
+IF enemyDiagonalUpLeft() AND left AND leftIsOpen THEN moveLeft();
+IF enemyDiagonalUpLeft() AND up AND !left AND leftIsOpen THEN moveLeft();
 
-IF enemyDiagonalUpLeft() AND !not THEN moveDown();
-IF enemyDiagonalUpLeft() AND left THEN moveLeft();
-IF enemyDiagonalUpLeft() AND up AND !left THEN moveLeft();
-
-
-IF enemyDiagonalUpLeft() AND up THEN moveUp();
-IF enemyDiagonalUpLeft() AND left THEN moveLeft();
-IF enemyDiagonalUpLeft() AND !up AND !left THEN moveLeft();
-
-## When in doubt just move somewhere
-IF upIsOpen THEN moveUp(); 
-IF rightIsOpen THEN moveRight();
-IF leftIsOpen THEN moveLeft();
-IF downIsOpen THEN moveDown();
-
-
+IF enemyDiagonalUpLeft() AND up AND upIsOpen THEN moveUp();
+IF enemyDiagonalUpLeft() AND left AND leftIsOpen THEN moveLeft();
+IF enemyDiagonalUpLeft() AND !up AND !left AND leftIsOpen THEN moveLeft();

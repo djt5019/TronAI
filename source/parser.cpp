@@ -177,8 +177,6 @@ void djt5019 :: initKnowledge()
 
 bool djt5019 :: callFunction(const char board[MAX_Y][MAX_X], string functionName )
 {
-    printf("callFunction: calling function \'%s\'\n", functionName.c_str());
-    
     if( functionName == "checkSurroundings()" ) return checkSurroundings(board);
     else if( functionName == "fill()" ){
       knowledgeBase["trapped"] = true;
@@ -212,6 +210,7 @@ bool djt5019 :: triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
     string tempString;
     bool expressionValue = false;
     bool tempResult = false;
+    bool negate = false;
     
     map<string, bool>::iterator itr;
     
@@ -219,43 +218,76 @@ bool djt5019 :: triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
     {
 	//There is only one expression
 	tempString = theRule.antecedent[0];
+	negate = false;
 
+	if( tempString[0] == '!' )
+	{
+	    tempString = tempString.substr(1, tempString.size() );
+	    negate = true;
+	}
+	
 	if( tempString.find("()") == string::npos && (knowledgeBase.find( tempString ) == knowledgeBase.end()) )
 	{
 	    printf("Deriving the expression \'%s\' ...\n", tempString.c_str());
 	    deriveExpression(board, tempString );
 	}
-
-	if( tempString[0] == '!' )
-	    expressionValue = !(knowledgeBase[tempString]);
-	else
-	    expressionValue = knowledgeBase[tempString];
 	
-	return expressionValue;
+	if( tempString.find("()") != string::npos )
+	    expressionValue = callFunction(board, tempString);
+	
+	expressionValue = knowledgeBase[tempString];
+	
+	if( negate ) 
+	  return !expressionValue;
+	else
+	  return expressionValue;
     } 
     else
     {
-	expressionValue = knowledgeBase[ theRule.antecedent[0] ];
-
-	for(size_t i = 1; i < theRule.antecedent.size(); i+=2)
+	string ex1 = theRule.antecedent[0];
+	
+	if( ex1[0] == '!' ) 
+	{ 
+	  ex1 = ex1.substr(1, ex1.size() ); 
+	  negate = true;
+	}
+	
+	if( ex1.find("()") != string::npos )
+	    expressionValue = callFunction(board,ex1);
+	else
+	    expressionValue = knowledgeBase[ex1];
+	
+	if(negate) expressionValue = (!expressionValue);
+	
+	for(size_t i = 2; i < theRule.antecedent.size(); i+=2)
 	{
-	    string op = theRule.antecedent[i];
-	    string ex = theRule.antecedent[i-1];       
+	    string ex = theRule.antecedent[i];
+	    string op = theRule.antecedent[i-1];       
+	    negate = false;
 
+	     if( ex[0] == '!' )
+	     {
+		ex = ex.substr(1, ex.size() );
+		negate = true;
+	     }
+	    
 	    if( (itr=knowledgeBase.find(ex)) == knowledgeBase.end() )
+	    {	      
 		deriveExpression( board, ex );
+	    }
 
 	    if( ex.find("()") != string::npos ) //Function call
 	    {
 		tempResult = callFunction( board, ex );
 		
-		(ex[0] == '!') ? tempResult =  !tempResult : 0;
+		(negate) ? tempResult =  (!tempResult) : 0;
+	
 	    }
 	    else
 	    {
 		tempResult = knowledgeBase[ex];
 		
-		(ex[0] == '!') ? tempResult = !tempResult : 0;
+		(negate) ? tempResult = (!tempResult) : 0;
 	    }
 
 	    if( op == "AND" || op == "and" )
@@ -268,8 +300,6 @@ bool djt5019 :: triggerRule(const char board[MAX_Y][MAX_X], struct rule theRule)
 	    }
 	}
     }
-    
-    
     return expressionValue; 
 }
 
@@ -325,8 +355,9 @@ void djt5019 :: tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
 	  // pointer to the relevent movement function then call the function
 	  // The consequents will only be movement functions or proving knowledge facts
 	  
-	  if( triggerRule( board, itr->second ) && moved != true)
+	  if( triggerRule( board, itr->second ) )
 	  {	      	    
+	      if(moved) return;
 	      string functionName = itr->second.consequent;
 	      
 	      if( functionName.find("()") == string::npos )
@@ -368,7 +399,7 @@ void djt5019 :: tryRules(const char board[MAX_Y][MAX_X], int& myX, int& myY)
 		  moved = true;
 		}
 	      }
-	     	      
+	      
 	      break;
 	  }
     }
@@ -425,6 +456,7 @@ bool Player2 :: Move(const char board[MAX_Y][MAX_X], int& me_x, int& me_y, int t
     if( game.checkSurroundings(board) )
     {
 	game.shortestPath(board);
+	game.lookAhead();
 	game.tryRules(board, me_x, me_y);
 	game.fill(me_x,me_y);
 	(game.debug()) ? cin.get() : 0;
@@ -609,15 +641,6 @@ bool djt5019 :: compare_shortest_paths(const char board[MAX_Y][MAX_X], int p1x, 
 	}
       }
       
-    for (int i = 0; i < MAX_Y; i++)
-    {
-      for (int j = 0; j < MAX_X; j++)
-      {
-	printf("|%03d|", zones_of_control[i][j]);
-      }
-      cout << endl;
-    }
-    
     if( zones_of_control[p2y-1][p2x] == wall && zones_of_control[p2y+1][p2x] == wall && zones_of_control[p2y][p2x-1] == wall && zones_of_control[p2y][p2x+1] == wall )
     {
 	knowledgeBase["trapped"] = true;
@@ -649,22 +672,22 @@ bool djt5019 :: enemyLeft()
 
 bool djt5019 :: enemyDiagonalUpLeft()
 {
-    return ( themY < *myY ) && (themX < *myX);
+    return (( themY < *myY ) && (themX < *myX) && (themY != *myY) && (themX != *myX));
 }
 
 bool djt5019 :: enemyDiagonalUpRight()
 {
-    return ( themY < *myY ) && (themX > *myX);
+    return (( themY < *myY ) && (themX > *myX) && (themY != *myY) && (themX != *myX));
 }
 
 bool djt5019 :: enemyDiagonalDownLeft()
 {
-    return ( themY > *myY ) && (themX < *myX);
+    return (( themY > *myY ) && (themX < *myX) && (themY != *myY) && (themX != *myX));
 }
 
 bool djt5019 :: enemyDiagonalDownRight()
 {
-    return ( themY > *myY ) && (themX > *myX);
+    return (( themY > *myY ) && (themX > *myX) && (themY != *myY) && (themX != *myX));
 }
 
 void djt5019 :: lookAhead()
