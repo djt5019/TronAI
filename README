@@ -1,5 +1,5 @@
 This will contain useful information for the project, but for now it will just contain this so 
-git will shut the hell up about not having a README file.  As for the project all that we have to 
+git will stop complaining about not having a README file.  As for the project all that we have to 
 do is come up with some sort of AI that will calculate moves for the game.  We are leaning either 
 towards a rule based expert system or some sort of genetic algorithm approach.  We have a bit of time
 before we have to commit to one but we should start talking about it.
